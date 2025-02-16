@@ -12,6 +12,14 @@ async def root():
 
 if __name__ == "__main__":
     ENV = os.getenv("ENV", "dev")
-    PORT = 443 if ENV == "prod" else 8000
 
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    if ENV == "prod":
+        uvicorn.run(
+            app,
+            host="0.0.0.0",
+            port=443,
+            ssl_keyfile="/etc/letsencrypt/live/api.meet-sync.us/privkey.pem",
+            ssl_certfile="/etc/letsencrypt/live/api.meet-sync.us/fullchain.pem",
+        )
+    else:
+        uvicorn.run(app, host="0.0.0.0", port=8000)
