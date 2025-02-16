@@ -5,6 +5,7 @@ services:
     build: .
     ports:
       - "80:8000"
+      - "443:443"
     volumes:
       - .:/src
     environment:

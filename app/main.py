@@ -1,4 +1,5 @@
 import uvicorn
+import os
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -10,4 +11,7 @@ async def root():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    ENV = os.getenv("ENV", "dev")
+    PORT = 443 if ENV == "prod" else 8000
+
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
