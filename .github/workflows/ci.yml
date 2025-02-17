@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +21,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install -r requirements.txt
+          pip install --upgrade pip
+          pip install --upgrade -r requirements.txt
 
       - name: Run Tests
         run: |

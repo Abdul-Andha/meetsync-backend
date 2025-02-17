@@ -4,8 +4,10 @@ services:
   web:
     build: .
     ports:
-      - "80:8000"
+      - "443:443"
     volumes:
+      - "/etc/letsencrypt/live/api.meet-sync.us/fullchain.pem:/certs/fullchain.pem:ro"
+      - "/etc/letsencrypt/live/api.meet-sync.us/privkey.pem:/certs/privkey.pem:ro"
       - .:/src
     environment:
       - DEBUG=True
