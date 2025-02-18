@@ -1,9 +1,10 @@
+import os
 from dotenv import dotenv_values
 from supabase import Client, create_client
 
 config = dotenv_values(".env")
-supabase_url = config["SUPABASE_URL"]
-supabase_key = config["SUPABASE_KEY"]
+supabase_url = config.get("SUPABASE_URL", os.getenv("SUPABASE_URL"))
+supabase_key = config.get("SUPABASE_KEY", os.getenv("SUPABASE_KEY"))
 supabase: Client = create_client(supabase_url, supabase_key)
 
 
