@@ -1,11 +1,10 @@
 import os
+
 from dotenv import dotenv_values
-from supabase import Client, create_client
+from supabase import Client
+from supabase_client import get_supabase_client
 
 config = dotenv_values(".env")
-supabase_url = config.get("SUPABASE_URL", os.getenv("SUPABASE_URL"))
-supabase_key = config.get("SUPABASE_KEY", os.getenv("SUPABASE_KEY"))
-supabase: Client = create_client(supabase_url, supabase_key)
 
 
 class InvalidUser(Exception):
@@ -18,6 +17,9 @@ def check_for_friendship(user_A: str, user_B: str):
 
     If the row exist, we will return the row_id, otherwise we will return None.
     """
+
+    supabase : Client = get_supabase_client()
+
     response_1 = (
         supabase.table("friends")
         .select()
@@ -44,7 +46,7 @@ def check_for_friendship(user_A: str, user_B: str):
     return None
 
 
-def add_new_friend(user_id: str, friend_id: str) -> str:
+def add_new_friend(user_id: str, friend_id: str) -> dict:
     """
     1. Raise errors if user_id or friend_id is falsey
     2. Check for entries in `friends` table
@@ -52,6 +54,8 @@ def add_new_friend(user_id: str, friend_id: str) -> str:
     3. If there are no entries, we will insert a row into the `friends` table
     4. If there are , we will return a message to the caller.
     """
+
+    supabase : Client = get_supabase_client()
 
     if user_id is None:
         raise InvalidUser("User ID can not null")
@@ -67,12 +71,12 @@ def add_new_friend(user_id: str, friend_id: str) -> str:
         }
         response = supabase.table("friends").insert(data).execute()
         if response.data[0]["id"]:
-            return "Succesfully created the friendship."
+            return { "status":  200 ,"message": "Succesfully created the friendship."}
 
-    return "Unable to add friends. Users are already in a friendship."
+    return { "status":  500 ,"message": "Unable to add friends. Users are already in a friendship."}
 
 
-def remove_friend(user_id: str, friend_id: str) -> str:
+def remove_friend(user_id: str, friend_id: str) -> dict:
     """
     1. Raise errors if user_id or friend_id is falsey
     2. Check for entries in `friends` table
@@ -80,6 +84,8 @@ def remove_friend(user_id: str, friend_id: str) -> str:
     3. If there are no entries, we will return a message to the caller.
     4. If there are , we will delete the row
     """
+
+    supabase : Client = get_supabase_client()
 
     if user_id is None:
         raise InvalidUser("User ID can not null")
@@ -89,8 +95,8 @@ def remove_friend(user_id: str, friend_id: str) -> str:
     friendship_id = check_for_friendship(user_id, friend_id)
 
     if friendship_id is None:
-        return "Unable to remove friends. Users are not in a friendship."
+        return { "status": 500 ,"message": "Unable to remove friends. Users are not in a friendship."}
 
     response = supabase.table("friends").delete().eq("id", friendship_id).execute()
     if response.data[0]["id"]:
-        return "Succesfully removed the friendship"
+        return { "status": 200 ,"message": "Succesfully removed the friendship"}

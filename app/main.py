@@ -23,18 +23,16 @@ async def root():
 async def process_add_friends(request: FriendRequest) -> dict:
     user_A = request.user_A
     user_B = request.user_B
-
     response = da.add_new_friend(user_A, user_B)
-    return {"res": response}
+    return response
 
 
 @app.post("/remove-friend")
 async def process_remove_friends(request: FriendRequest) -> dict:
     user_A = request.user_A
     user_B = request.user_B
-
     response = da.remove_friend(user_A, user_B)
-    return {"res": response}
+    return response
 
 
 if __name__ == "__main__":
