@@ -2,3 +2,6 @@ fastapi[standard]
 uvicorn
 python-dotenv
 pytest
+supabase
+black
+isort
