@@ -35,7 +35,6 @@ async def process_add_friends(request: FriendRequest) -> dict:
         return {"status": 500, "message": str(e)}
 
 
-
 @app.post("/remove-friend")
 async def process_remove_friends(request: FriendRequest) -> dict:
     user_A = request.user_A

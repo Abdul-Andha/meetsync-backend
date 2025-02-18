@@ -2,8 +2,8 @@ import os
 
 from dotenv import dotenv_values
 from supabase import Client
-from app.custom_errors import UnexpectedError, InvalidUser
 
+from app.custom_errors import InvalidUser, UnexpectedError
 from supabase_client import get_supabase_client
 
 config = dotenv_values(".env")
@@ -26,14 +26,14 @@ def check_for_friendship(user_A: str, user_B: str):
 
     try:
         response = (
-        supabase.table("friends")
-        .select()
-        .eq("user_A", user_A)
-        .eq("user_B", user_B)
-        .maybe_single()
-        .execute()
-    )
-        
+            supabase.table("friends")
+            .select()
+            .eq("user_A", user_A)
+            .eq("user_B", user_B)
+            .maybe_single()
+            .execute()
+        )
+
         if response:
             return response.data["id"]
 
