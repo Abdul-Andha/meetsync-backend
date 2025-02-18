@@ -26,6 +26,7 @@ async def process_add_friends(request: FriendRequest) -> dict:
     response = da.add_new_friend(user_id, friend_id)
     return {"res": response}
 
+
 @app.post("/remove-friend")
 async def process_remove_friends(request: FriendRequest) -> dict:
     user_id = request.user_id

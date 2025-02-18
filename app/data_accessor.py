@@ -11,6 +11,36 @@ class InvalidUser(Exception):
     """User ID can not be null"""
 
 
+def check_for_friendship(user_A: str, user_B: str):
+    """
+    A helper function to retrive a row in the friends table.
+    
+    If the row exist, we will return the row_id, otherwise we will return None.
+    """
+    response_1 = (
+        supabase.table("friends")
+        .select()
+        .eq("user_A", user_A)
+        .eq("user_B", user_B).maybe_single()
+        .execute()
+    )
+    response_2 = (
+        supabase.table("friends")
+        .select()
+        .eq("user_A", user_B)
+        .eq("user_B", user_A).maybe_single()
+        .execute()
+    )
+
+    if response_1:
+        return response_1.data["id"]
+
+    if response_2:
+        return response_2.data["id"]
+    
+    return None
+
+
 def add_new_friend(user_id: str, friend_id: str) -> str:
     """
     1. Raise errors if user_id or friend_id is falsey
@@ -24,23 +54,10 @@ def add_new_friend(user_id: str, friend_id: str) -> str:
         raise InvalidUser("User ID can not null")
     if friend_id is None:
         raise InvalidUser("Friend ID can not null")
+    
+    friendship_id = check_for_friendship(user_id, friend_id)
 
-    response_1 = (
-        supabase.table("friends")
-        .select()
-        .eq("user_A", user_id)
-        .eq("user_B", friend_id).maybe_single()
-        .execute()
-    )
-    response_2 = (
-        supabase.table("friends")
-        .select()
-        .eq("user_A", friend_id)
-        .eq("user_B", user_id).maybe_single()
-        .execute()
-    )
-
-    if not response_1 and not response_2:
+    if not friendship_id:
         data = {
             "user_A": user_id,
             "user_B": friend_id,
@@ -66,26 +83,12 @@ def remove_friend(user_id: str, friend_id: str) -> str:
     if friend_id is None:
         raise InvalidUser("Friend ID can not null")
 
-    response_1 = (
-        supabase.table("friends")
-        .select()
-        .eq("user_A", user_id)
-        .eq("user_B", friend_id).maybe_single()
-        .execute()
-    )
-    response_2 = (
-        supabase.table("friends")
-        .select()
-        .eq("user_A", friend_id)
-        .eq("user_B", user_id).maybe_single()
-        .execute()
-    )
+    friendship_id = check_for_friendship(user_id, friend_id)
 
-    if response_1 is None and response_2 is None:
+    if friendship_id is None:
         return "Unable to remove friends. Users are not in a friendship."
     
-    id_to_remove = response_1.data.get("id") or response_2.data.get("id")
-    response = supabase.table("friends").delete().eq("id", id_to_remove).execute()
+    response = supabase.table("friends").delete().eq("id", friendship_id).execute()
     if response.data[0]["id"]:
         return "Succesfully removed the friendship"
 
