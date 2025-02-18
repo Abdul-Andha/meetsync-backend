@@ -45,6 +45,8 @@ async def process_remove_friends(request: FriendRequest) -> dict:
         return {"status": 500, "message": str(e)}
     except ValueError as e:
         return {"status": 500, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
 
     return response
 
