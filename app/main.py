@@ -28,9 +28,9 @@ async def process_add_friends(request: FriendRequest) -> dict:
         response = da.add_new_friend(user_A, user_B)
         return response
     except InvalidUser as e:
-        return {"status": 500, "message": str(e)}
+        return {"status": 400, "message": str(e)}
     except ValueError as e:
-        return {"status": 500, "message": str(e)}
+        return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
 
@@ -42,9 +42,9 @@ async def process_remove_friends(request: FriendRequest) -> dict:
     try:
         response = da.remove_friend(user_A, user_B)
     except InvalidUser as e:
-        return {"status": 500, "message": str(e)}
+        return {"status": 400, "message": str(e)}
     except ValueError as e:
-        return {"status": 500, "message": str(e)}
+        return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
 
