@@ -1,7 +1,8 @@
 import uvicorn
 from dotenv import dotenv_values
-from pydantic import BaseModel
 from fastapi import FastAPI
+from pydantic import BaseModel
+
 import app.data_accessor as da
 
 config = dotenv_values(".env")
