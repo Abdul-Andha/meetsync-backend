@@ -10,8 +10,8 @@ app = FastAPI()
 
 
 class FriendRequest(BaseModel):
-    user_id: int
-    friend_id: int
+    user_A: int
+    user_B: int
 
 
 @app.get("/")
@@ -21,19 +21,19 @@ async def root():
 
 @app.post("/add-friend")
 async def process_add_friends(request: FriendRequest) -> dict:
-    user_id = request.user_id
-    friend_id = request.friend_id
+    user_A = request.user_A
+    user_B = request.user_B
 
-    response = da.add_new_friend(user_id, friend_id)
+    response = da.add_new_friend(user_A, user_B)
     return {"res": response}
 
 
 @app.post("/remove-friend")
 async def process_remove_friends(request: FriendRequest) -> dict:
-    user_id = request.user_id
-    friend_id = request.friend_id
+    user_A = request.user_A
+    user_B = request.user_B
 
-    response = da.remove_friend(user_id, friend_id)
+    response = da.remove_friend(user_A, user_B)
     return {"res": response}
 
 
