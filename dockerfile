@@ -1,11 +1,13 @@
 FROM python:3.10
 
 WORKDIR /src
-ADD ./ /src
 
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./requirements.txt /src/requirements.txt
 
-EXPOSE 8000 443
+RUN pip install --no-cache-dir -r /src/requirements.txt
 
-CMD ["python", "app/main.py"]
+COPY ./app /src/app
+
+EXPOSE 80 443
+
+CMD ["fastapi", "run",  "app/main.py", "--host", "0.0.0.0", "--port", "80"]

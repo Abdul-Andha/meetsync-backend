@@ -2,6 +2,7 @@ import uvicorn
 from dotenv import dotenv_values
 from fastapi import FastAPI
 from pydantic import BaseModel
+import sys
 
 import app.data_accessor as da
 
@@ -38,8 +39,8 @@ async def process_remove_friends(request: FriendRequest) -> dict:
 
 
 if __name__ == "__main__":
-    IS_PROD = config["IS_PROD"] == "True"
-    if IS_PROD:
+    ENV = sys.argv[1]
+    if ENV == "prod":
         print("Deploying to Prod")
         uvicorn.run(
             app,
