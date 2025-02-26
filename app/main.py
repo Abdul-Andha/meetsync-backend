@@ -36,19 +36,3 @@ async def process_remove_friends(request: FriendRequest) -> dict:
 
     response = da.remove_friend(user_id, friend_id)
     return {"res": response}
-
-
-if __name__ == "__main__":
-    ENV = sys.argv[1]
-    if ENV == "prod":
-        print("Deploying to Prod")
-        uvicorn.run(
-            app,
-            host="0.0.0.0",
-            port=443,
-            ssl_keyfile="/certs/privkey.pem",
-            ssl_certfile="/certs/fullchain.pem",
-        )
-    else:
-        print("Deploying to Dev")
-        uvicorn.run(app, host="0.0.0.0", port=8000)
