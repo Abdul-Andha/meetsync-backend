@@ -42,13 +42,10 @@ async def process_remove_friends(request: FriendRequest) -> dict:
     user_B = request.user_B
     try:
         response = da.remove_friend(user_A, user_B)
+        return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
     except ValueError as e:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
-
-
-    response = da.remove_friend(user_id, friend_id)
-    return {"res": response}
