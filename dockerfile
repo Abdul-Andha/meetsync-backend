@@ -8,6 +8,6 @@ RUN pip install --no-cache-dir -r /src/requirements.txt
 
 COPY ./app /src/app
 
-EXPOSE 80 443
+EXPOSE 8000 443
 
-CMD ["fastapi", "run",  "app/main.py", "--host", "0.0.0.0", "--port", "80"]
+CMD ["fastapi", "run",  "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
