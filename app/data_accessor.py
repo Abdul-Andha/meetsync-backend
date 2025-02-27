@@ -123,7 +123,7 @@ def remove_friend(user_A: str, user_B: str) -> dict:
     if response.data[0]["id"]:
         return {"status": 200, "message": "Succesfully removed the friendship"}
     
-    
+
 def get_notifications(user_id: str):
     """
     Retrieve all notifications for a given user.
@@ -173,7 +173,6 @@ def remove_notification(notification_id: str, user_id: str) -> dict:
     supabase: Client = get_supabase_client()
 
     try:
-        # Ensure the notification belongs to the user before deletion
         response = (
             supabase.table("notifications")
             .select("id")
@@ -186,7 +185,6 @@ def remove_notification(notification_id: str, user_id: str) -> dict:
         if not response.data:
             return {"status": 404, "message": "Notification not found or does not belong to user"}
 
-        # Delete the notification
         delete_response = (
             supabase.table("notifications")
             .delete()
