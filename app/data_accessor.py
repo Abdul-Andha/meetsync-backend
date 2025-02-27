@@ -122,3 +122,81 @@ def remove_friend(user_A: str, user_B: str) -> dict:
     response = supabase.table("friends").delete().eq("id", friendship_id).execute()
     if response.data[0]["id"]:
         return {"status": 200, "message": "Succesfully removed the friendship"}
+    
+    
+def get_notifications(user_id: str):
+    """
+    Retrieve all notifications for a given user.
+
+    1. Raise an error if `user_id` is falsy.
+    2. Query the `notifications` table to fetch notifications for the user.
+    3. Return the list of notifications.
+
+    If an error occurs, raise an UnexpectedError.
+    """
+
+    if not user_id:
+        raise InvalidUser("User ID cannot be null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("notifications")
+            .select()
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        if response.data:
+            return {"status": 200, "notifications": response.data}
+        return {"status": 200, "notifications": []}
+
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def remove_notification(notification_id: str, user_id: str) -> dict:
+    """
+    1. Raise errors if `notification_id` or `user_id` is falsy.
+    2. Query the `notifications` table to ensure the notification belongs to the user.
+    3. If found, delete the notification.
+    4. If the notification does not exist, return an appropriate message.
+    """
+
+    if not notification_id:
+        raise InvalidUser("Notification ID cannot be null")
+    if not user_id:
+        raise InvalidUser("User ID cannot be null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        # Ensure the notification belongs to the user before deletion
+        response = (
+            supabase.table("notifications")
+            .select("id")
+            .eq("id", notification_id)
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+
+        if not response.data:
+            return {"status": 404, "message": "Notification not found or does not belong to user"}
+
+        # Delete the notification
+        delete_response = (
+            supabase.table("notifications")
+            .delete()
+            .eq("id", notification_id)
+            .execute()
+        )
+
+        if delete_response.data:
+            return {"status": 200, "message": "Notification successfully removed"}
+        return {"status": 500, "message": "Unable to remove notification"}
+
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
