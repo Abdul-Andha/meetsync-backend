@@ -87,3 +87,4 @@ async def delete_notification(request: DeleteNotificationRequest) -> dict:
         return {"status": 500, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
