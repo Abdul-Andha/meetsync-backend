@@ -151,7 +151,7 @@ def get_notifications(user_id: str):
 
         if response.data:
             return {"status": 200, "notifications": response.data}
-        return {"status": 200, "notifications": []}
+        return {"status": 200, "notifications": response.data}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
