@@ -159,42 +159,33 @@ def get_notifications(user_id: str):
 
 def remove_notification(notification_id: str, user_id: str) -> dict:
     """
+    Attempts to delete a notification directly.
+
     1. Raise errors if `notification_id` or `user_id` is falsy.
-    2. Query the `notifications` table to ensure the notification belongs to the user.
-    3. If found, delete the notification.
-    4. If the notification does not exist, return an appropriate message.
+    2. Perform the delete operation.
+    3. If no records were deleted, return a 404 Not Found response.
     """
 
     if not notification_id:
         raise ValueError("Notification ID cannot be null")
     if not user_id:
-        raise InvalidUser("User ID cannot be null")
+        raise ValueError("User ID cannot be null")
 
     supabase: Client = get_supabase_client()
 
     try:
         response = (
             supabase.table("notifications")
-            .select("id")
+            .delete()
             .eq("id", notification_id)
-            .eq("user_id", user_id)
-            .maybe_single()
+            .eq("user_id", user_id)  
             .execute()
         )
 
         if not response.data:
             return {"status": 404, "message": "Notification not found or does not belong to user"}
 
-        delete_response = (
-            supabase.table("notifications")
-            .delete()
-            .eq("id", notification_id)
-            .execute()
-        )
-
-        if delete_response.data:
-            return {"status": 200, "message": "Notification successfully removed"}
-        return {"status": 500, "message": "Unable to remove notification"}
+        return {"status": 200, "message": "Notification successfully removed"}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
