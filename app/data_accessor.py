@@ -166,7 +166,7 @@ def remove_notification(notification_id: str, user_id: str) -> dict:
     """
 
     if not notification_id:
-        raise InvalidUser("Notification ID cannot be null")
+        raise ValueError("Notification ID cannot be null")
     if not user_id:
         raise InvalidUser("User ID cannot be null")
 
