@@ -210,7 +210,11 @@ def fetch_friends(uuid: str) -> dict:
 
     try:
         user_exist = (
-            supabase.table("users").select("auth_id").eq("auth_id", uuid).maybe_single().execute()
+            supabase.table("users")
+            .select("auth_id")
+            .eq("auth_id", uuid)
+            .maybe_single()
+            .execute()
         )
 
         if not user_exist.data:
