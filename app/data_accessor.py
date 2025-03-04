@@ -189,3 +189,30 @@ def remove_notification(notification_id: str, user_id: str) -> dict:
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
+    
+
+def fetch_friends(uuid: str) -> dict:
+    """
+   
+
+    """
+
+    supabase: Client = get_supabase_client()
+
+    if uuid is None:
+        raise InvalidUser("User ID can not null")
+
+    try:
+        response = (
+            supabase.table("friends")
+            .select("*")
+            .or_(f"user_A.eq.{uuid},user_B.eq.{uuid}")
+            .execute()
+        )
+    except UnexpectedError as e:
+        raise e
+
+    return {"res" : response}
+
+    if response.data[0]["id"]:
+        return {"status": 200, "message": "Succesfully removed the friendship"}
