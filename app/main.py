@@ -1,8 +1,9 @@
+import sys
+
 import uvicorn
 from dotenv import dotenv_values
 from fastapi import FastAPI
 from pydantic import BaseModel
-import sys
 
 import app.data_accessor as da
 from app.custom_errors import InvalidUser, UnexpectedError
@@ -12,8 +13,8 @@ app = FastAPI()
 
 
 class FriendRequest(BaseModel):
-    user_A: int
-    user_B: int
+    user_A: str
+    user_B: str
 
 
 class NotificationRequest(BaseModel):
@@ -87,4 +88,3 @@ async def delete_notification(request: DeleteNotificationRequest) -> dict:
         return {"status": 500, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
-
