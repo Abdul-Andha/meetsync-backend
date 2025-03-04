@@ -122,7 +122,7 @@ def remove_friend(user_A: str, user_B: str) -> dict:
     response = supabase.table("friends").delete().eq("id", friendship_id).execute()
     if response.data[0]["id"]:
         return {"status": 200, "message": "Succesfully removed the friendship"}
-    
+
 
 def get_notifications(user_id: str):
     """
@@ -178,12 +178,15 @@ def remove_notification(notification_id: str, user_id: str) -> dict:
             supabase.table("notifications")
             .delete()
             .eq("id", notification_id)
-            .eq("user_id", user_id)  
+            .eq("user_id", user_id)
             .execute()
         )
 
         if not response.data:
-            return {"status": 404, "message": "Notification not found or does not belong to user"}
+            return {
+                "status": 404,
+                "message": "Notification not found or does not belong to user",
+            }
 
         return {"status": 200, "message": "Notification successfully removed"}
 
