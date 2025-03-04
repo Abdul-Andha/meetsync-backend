@@ -122,7 +122,7 @@ def remove_friend(user_A: str, user_B: str) -> dict:
     response = supabase.table("friends").delete().eq("id", friendship_id).execute()
     if response.data[0]["id"]:
         return {"status": 200, "message": "Succesfully removed the friendship"}
-    
+
 
 def get_notifications(user_id: str):
     """
@@ -178,23 +178,29 @@ def remove_notification(notification_id: str, user_id: str) -> dict:
             supabase.table("notifications")
             .delete()
             .eq("id", notification_id)
-            .eq("user_id", user_id)  
+            .eq("user_id", user_id)
             .execute()
         )
 
         if not response.data:
-            return {"status": 404, "message": "Notification not found or does not belong to user"}
+            return {
+                "status": 404,
+                "message": "Notification not found or does not belong to user",
+            }
 
         return {"status": 200, "message": "Notification successfully removed"}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
-    
+
 
 def fetch_friends(uuid: str) -> dict:
     """
-   
-
+    1. Checks if uuid is empty, raised an InvalidUser if so.
+    2. Checks if user exist in user table.
+        a. We are doing this because if we query "friends" and the uuid does not exist, it will return an empty list. This will help with debugging.
+    2. Fetchs all rows where uuid = user_A or uuid = user_b.
+    3. We will always return `response.data` because if there are no results found from the query, `repsponse.data` will be an empty list.
     """
 
     supabase: Client = get_supabase_client()
@@ -203,16 +209,21 @@ def fetch_friends(uuid: str) -> dict:
         raise InvalidUser("User ID can not null")
 
     try:
+        user_exist = (
+            supabase.table("users").select("auth_id").eq("auth_id", uuid).maybe_single().execute()
+        )
+
+        if not user_exist.data:
+            return {"status": 404, "message": "User does not exist."}
+
         response = (
             supabase.table("friends")
-            .select("*")
+            .select("id", "user_A", "user_B", "status", "created_at")
             .or_(f"user_A.eq.{uuid},user_B.eq.{uuid}")
             .execute()
         )
+
+        return {"status": 200, "friends": response.data}
+
     except UnexpectedError as e:
         raise e
-
-    return {"res" : response}
-
-    if response.data[0]["id"]:
-        return {"status": 200, "message": "Succesfully removed the friendship"}

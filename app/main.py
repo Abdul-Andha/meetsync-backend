@@ -1,8 +1,9 @@
+import sys
+
 import uvicorn
 from dotenv import dotenv_values
 from fastapi import FastAPI
 from pydantic import BaseModel
-import sys
 
 import app.data_accessor as da
 from app.custom_errors import InvalidUser, UnexpectedError
@@ -12,8 +13,8 @@ app = FastAPI()
 
 
 class FriendRequest(BaseModel):
-    user_A: int
-    user_B: int
+    user_A: str
+    user_B: str
 
 
 class FetchFriedsRequest(BaseModel):
@@ -96,7 +97,6 @@ async def delete_notification(request: DeleteNotificationRequest) -> dict:
 @app.post("/fetch-friends")
 async def process_fetch_friends(request: FetchFriedsRequest) -> dict:
     uuid = request.uuid
-
     try:
         response = da.fetch_friends(uuid)
         return response
