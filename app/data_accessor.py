@@ -200,7 +200,7 @@ def fetch_friends(uuid: str) -> dict:
     2. Checks if user exist in user table.
         a. We are doing this because if we query "friends" and the uuid does not exist, it will return an empty list. This will help with debugging.
     2. Fetchs all rows where uuid = user_A or uuid = user_b.
-    3. We will always return `response.data` because if there are no results found from the query, `repsponse.data` will be an empty list.
+    3. We will always return `response.data` because if there are no results found from the query, `response.data` will be an empty list.
     """
 
     supabase: Client = get_supabase_client()
