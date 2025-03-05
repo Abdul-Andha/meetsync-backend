@@ -17,6 +17,10 @@ class FriendRequest(BaseModel):
     user_B: str
 
 
+class FetchFriedsRequest(BaseModel):
+    uuid: str
+
+
 class NotificationRequest(BaseModel):
     user_id: str
 
@@ -86,5 +90,19 @@ async def delete_notification(request: DeleteNotificationRequest) -> dict:
         return {"status": 400, "message": str(e)}
     except UnexpectedError as e:
         return {"status": 500, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/fetch-friends")
+async def process_fetch_friends(request: FetchFriedsRequest) -> dict:
+    uuid = request.uuid
+    try:
+        response = da.fetch_friends(uuid)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
+        return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}

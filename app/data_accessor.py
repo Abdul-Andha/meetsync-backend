@@ -192,3 +192,42 @@ def remove_notification(notification_id: str, user_id: str) -> dict:
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def fetch_friends(uuid: str) -> dict:
+    """
+    1. Checks if uuid is empty, raised an InvalidUser if so.
+    2. Checks if user exist in user table.
+        a. We are doing this because if we query "friends" and the uuid does not exist, it will return an empty list. This will help with debugging.
+    2. Fetchs all rows where uuid = user_A or uuid = user_b.
+    3. We will always return `response.data` because if there are no results found from the query, `response.data` will be an empty list.
+    """
+
+    supabase: Client = get_supabase_client()
+
+    if uuid is None:
+        raise InvalidUser("User ID can not null")
+
+    try:
+        user_exist = (
+            supabase.table("users")
+            .select("auth_id")
+            .eq("auth_id", uuid)
+            .maybe_single()
+            .execute()
+        )
+
+        if not user_exist.data:
+            return {"status": 404, "message": "User does not exist."}
+
+        response = (
+            supabase.table("friends")
+            .select("id", "user_A", "user_B", "status", "created_at")
+            .or_(f"user_A.eq.{uuid},user_B.eq.{uuid}")
+            .execute()
+        )
+
+        return {"status": 200, "friends": response.data}
+
+    except UnexpectedError as e:
+        raise e
