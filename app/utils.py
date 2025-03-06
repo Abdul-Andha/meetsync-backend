@@ -1,7 +1,7 @@
 from app.custom_errors import InvalidUser, UnexpectedError
-from supabase import Client
+from supabase_client import get_supabase_client
 
-def send_notification(sender: str | None, receiver: str, msg: str, supabase: Client, noti_type: str):
+def send_notification(sender: str | None, receiver: str, msg: str, noti_type: str):
     """
     A helper function to send notification to a user
 
@@ -13,6 +13,7 @@ def send_notification(sender: str | None, receiver: str, msg: str, supabase: Cli
     If needed you can keep sender blank 
     Insert parameter information to the table
     """
+    supabase: Client = get_supabase_client()
 
     if receiver is None:
         raise InvalidUser("Receiver cannot be null")
