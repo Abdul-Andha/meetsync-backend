@@ -1,5 +1,5 @@
 from supabase import Client
-from app.custom_errors import InvalidUser, UnexpectedError
+from app.custom_errors import UnexpectedError
 from supabase_client import get_supabase_client
 
 
@@ -24,7 +24,7 @@ def send_notification(
     supabase: Client = get_supabase_client()
 
     if receiver is None:
-        raise InvalidUser("Receiver cannot be null")
+        raise ValueError("Receiver cannot be null")
     if sender == receiver:
         raise ValueError(
             f"The IDs of the users can not be the same. Sender: {sender}, Receiver: {receiver}"
@@ -45,8 +45,8 @@ def send_notification(
             .execute()
         )
 
-        if response.data[0]["id"]:
-            return {"status": 200, "message": "Succesfully sent notification."}
+        if response.data and response.data[0]["id"]:
+            return {"status": 200, "message": "Successfully sent notification."}
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
@@ -66,7 +66,7 @@ def send_notification_bulk(
     supabase: Client = get_supabase_client()
 
     if len(receivers) == 0:
-        raise InvalidUser("Receivers cannot be empty")
+        raise ValueError("Receivers cannot be empty")
     if sender in receivers:
         raise ValueError(
             f"The IDs of the users can not be the same. Sender: {sender}, Receiver: {receivers}"
@@ -86,7 +86,7 @@ def send_notification_bulk(
     try:
         response = supabase.table("notifications").insert(data).execute()
 
-        if response.data[0]["id"]:
-            return {"status": 200, "message": "Succesfully sent notifications."}
+        if response.data and response.data[0]["id"]:
+            return {"status": 200, "message": "Successfully sent notifications."}
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
