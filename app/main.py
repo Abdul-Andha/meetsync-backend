@@ -1,13 +1,11 @@
-import sys
-
-import uvicorn
 from dotenv import dotenv_values
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from datetime import datetime
 
 import app.data_accessor as da
-from app.custom_errors import InvalidUser, UnexpectedError
+from app.custom_errors import InvalidUser, UnexpectedError, InvalidHangout
 
 config = dotenv_values(".env")
 app = FastAPI()
@@ -48,11 +46,12 @@ class FriendsAutocompleteRequest(BaseModel):
 
 
 class HangoutRequest(BaseModel):
+    creator_username: str
     creator_id: str
     invitee_ids: list[str]
     title: str
-    expiration: str
-    date_range: str
+    date_range_start: str
+    date_range_end: str
 
 
 @app.get("/")
@@ -147,19 +146,41 @@ async def process_friends_autocomplete(request: FriendsAutocompleteRequest) -> d
 
 
 @app.post("/new-hangout")
-async def process_new_hangout(request: FriendRequest) -> dict:
+async def process_new_hangout(request: HangoutRequest) -> dict:
+    creator_username = request.creator_username
     creator_id = request.creator_id
     invitee_ids = request.invitee_ids
     title = request.title
-    expiration = request.expiration
-    date_range = request.date_range
+    date_range_start = request.date_range_start
+    date_range_end = request.date_range_end
 
     try:
         response = da.new_hangout(
-            creator_id, invitee_ids, title, expiration, date_range
+            creator_username,
+            creator_id,
+            invitee_ids,
+            title,
+            date_range_start,
+            date_range_end,
         )
         return response
     except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/accept-invite")
+async def process_accept_invite(request: FriendRequest) -> dict:
+    hangout_id = request.hangout_id
+    user_id = request.user_id
+
+    try:
+        response = da.accept_invite(hangout_id, user_id)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
