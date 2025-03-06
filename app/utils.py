@@ -87,6 +87,6 @@ def send_notification_bulk(
         response = supabase.table("notifications").insert(data).execute()
 
         if response.data[0]["id"]:
-            return {"status": 200, "message": "Succesfully sent notification."}
+            return {"status": 200, "message": "Succesfully sent notifications."}
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
