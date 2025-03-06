@@ -5,7 +5,7 @@ from supabase import Client
 
 from app.custom_errors import InvalidUser, InvalidHangout, UnexpectedError
 from supabase_client import get_supabase_client
-from app.utils import send_notification
+from app.utils import send_notification_bulk
 from datetime import datetime
 
 config = dotenv_values(".env")
@@ -345,18 +345,17 @@ def invite_users(
 
     try:
         response = supabase.table("hangout_participants").insert(data).execute()
-        if response.data[0]["id"]:
-            for id in invitee_ids:
-                send_notification(
-                    creator_id,
-                    id,
-                    f"{creator_username} has invited you to a hangout",
-                    "hangout-invite",
-                    hangout_id,
-                )
+        notifResponse = send_notification_bulk(
+            creator_id,
+            invitee_ids,
+            f"{creator_username} has invited you to a hangout",
+            "hangout-invite",
+            hangout_id,
+        )
+        if response.data and notifResponse["status"] == 200:
             return {
                 "status": 200,
-                "message": "Succesfully added hangout participants.",
+                "message": "Succesfully invited users to the hangout.",
             }
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
