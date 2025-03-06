@@ -1,16 +1,9 @@
-import os
-
 from dotenv import dotenv_values
 from supabase import Client
 
 from app.custom_errors import InvalidUser, InvalidHangout, UnexpectedError
 from supabase_client import get_supabase_client
-<<<<<<< HEAD
 from app.utils import send_notification_bulk
-=======
-from app.utils import send_notification
->>>>>>> 9d515bbf671f2c4cfe0b148ddf9aa4af3661d59d
-from datetime import datetime
 
 config = dotenv_values(".env")
 
@@ -315,5 +308,63 @@ def invite_users(
                 "status": 200,
                 "message": "Succesfully invited users to the hangout.",
             }
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def respond_to_invite(hangout_id: str, user_id: str, status: str) -> dict:
+    """
+    1. Raise errors if hangout_id or user_id is falsey.
+    2. Raise errors if hangout_participants row does not exist.
+    3. Update the status of the hangout_participants row to incoming status.
+    """
+
+    if hangout_id is None:
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("hangout_participants")
+            .update({"status": status})
+            .eq("hangout_id", hangout_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        if response.data:
+            check_for_pending(hangout_id)
+            return {"status": 200, "message": "Succesfully updated the invite."}
+        return {"status": 404, "message": "Hangout invite not found."}
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def check_for_pending(hangout_id: str):
+    """
+    1. Raise errors if hangout_id is falsey.
+    2. Check if there are any pending invites for the hangout.
+    3. If there are no pending invites, update the status of the hangout to "fetching-availability".
+    """
+
+    if hangout_id is None:
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("hangout_participants")
+            .select()
+            .eq("hangout_id", hangout_id)
+            .eq("status", "pending")
+            .execute()
+        )
+
+        if not response.data:
+            supabase.table("hangouts").update({"status": "fetching-availability"}).eq(
+                "id", hangout_id
+            ).execute()
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")

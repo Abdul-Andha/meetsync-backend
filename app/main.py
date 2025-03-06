@@ -1,7 +1,6 @@
 from dotenv import dotenv_values
 from fastapi import FastAPI
 from pydantic import BaseModel
-from datetime import datetime
 
 import app.data_accessor as da
 from app.custom_errors import InvalidUser, UnexpectedError, InvalidHangout
@@ -35,6 +34,11 @@ class HangoutRequest(BaseModel):
     title: str
     date_range_start: str
     date_range_end: str
+
+
+class HangoutResponseRequest(BaseModel):
+    hangout_id: str
+    user_id: str
 
 
 @app.get("/")
@@ -141,12 +145,28 @@ async def process_new_hangout(request: HangoutRequest) -> dict:
 
 
 @app.post("/accept-invite")
-async def process_accept_invite(request: FriendRequest) -> dict:
+async def process_accept_invite(request: HangoutResponseRequest) -> dict:
     hangout_id = request.hangout_id
     user_id = request.user_id
 
     try:
-        response = da.accept_invite(hangout_id, user_id)
+        response = da.respond_to_invite(hangout_id, user_id, "accepted")
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/decline-invite")
+async def process_decline_invite(request: HangoutResponseRequest) -> dict:
+    hangout_id = request.hangout_id
+    user_id = request.user_id
+
+    try:
+        response = da.respond_to_invite(hangout_id, user_id, "declined")
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
