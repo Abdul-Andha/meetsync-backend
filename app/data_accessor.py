@@ -5,7 +5,11 @@ from supabase import Client
 
 from app.custom_errors import InvalidUser, InvalidHangout, UnexpectedError
 from supabase_client import get_supabase_client
+<<<<<<< HEAD
 from app.utils import send_notification_bulk
+=======
+from app.utils import send_notification
+>>>>>>> 9d515bbf671f2c4cfe0b148ddf9aa4af3661d59d
 from datetime import datetime
 
 config = dotenv_values(".env")
