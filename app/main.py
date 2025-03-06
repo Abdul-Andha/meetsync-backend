@@ -17,11 +17,11 @@ origins = [
 ]
 
 app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True, # Allows cookies and authorization headers
-        allow_methods=["*"],    # Allows all HTTP methods
- )
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,  # Allows cookies and authorization headers
+    allow_methods=["*"],  # Allows all HTTP methods
+)
 
 
 class FriendRequest(BaseModel):
@@ -45,6 +45,14 @@ class DeleteNotificationRequest(BaseModel):
 class FriendsAutocompleteRequest(BaseModel):
     authenticated_user_uuid: str
     name_to_query: str
+
+
+class HangoutRequest(BaseModel):
+    creator_id: str
+    invitee_ids: list[str]
+    title: str
+    expiration: str
+    date_range: str
 
 
 @app.get("/")
@@ -135,6 +143,23 @@ async def process_friends_autocomplete(request: FriendsAutocompleteRequest) -> d
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
     except ValueError as e:
+        return {"status": 400, "message": str(e)}
+
+
+@app.post("/new-hangout")
+async def process_new_hangout(request: FriendRequest) -> dict:
+    creator_id = request.creator_id
+    invitee_ids = request.invitee_ids
+    title = request.title
+    expiration = request.expiration
+    date_range = request.date_range
+
+    try:
+        response = da.new_hangout(
+            creator_id, invitee_ids, title, expiration, date_range
+        )
+        return response
+    except InvalidUser as e:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}

@@ -5,6 +5,7 @@ from supabase import Client
 
 from app.custom_errors import InvalidUser, UnexpectedError
 from supabase_client import get_supabase_client
+from utils import send_notification
 
 config = dotenv_values(".env")
 
@@ -277,3 +278,54 @@ def friends_autocomplete(uuid: str, query: str) -> dict:
 
     except UnexpectedError as e:
         raise e
+
+
+def new_hangout(
+    creator_id: str,
+    invitee_ids: list[str],
+    title: str,
+    expiration: str,
+    date_range: str,
+) -> dict:
+    """
+    1. Raise errors if creator_id is falsey or invitee_ids is empty.
+    2. Send notifications to all invitees.
+    3. Create new hangout object in the hangouts table.
+    """
+
+    if creator_id is None:
+        raise InvalidUser("Creator ID can not null")
+
+    if len(invitee_ids) == 0:
+        raise InvalidUser("Invitee IDs can not be empty")
+
+    for id in invitee_ids:
+        try:
+            send_notification(
+                creator_id,
+                id,
+                f"{creator_id} has invited you to a hangout",
+                "hangoutInvite",
+            )
+        except Exception as e:
+            raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+    supabase: Client = get_supabase_client()
+
+    data = {
+        "creator_id": creator_id,
+        "invitee_ids": invitee_ids,
+        "accepted_ids": [],
+        "declined_ids": [],
+        "title": title,
+        "expiration": expiration,
+        "date_range": date_range,
+        "status": "fetchingAvailability",
+    }
+
+    try:
+        response = supabase.table("hangouts").insert(data).execute()
+        if response.data[0]["id"]:
+            return {"status": 200, "message": "Succesfully created the hangout."}
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
