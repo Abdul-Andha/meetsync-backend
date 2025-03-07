@@ -2,8 +2,10 @@ from dotenv import dotenv_values
 from supabase import Client
 
 from app.custom_errors import InvalidUser, InvalidHangout, UnexpectedError
+from app.custom_types import HangoutStatus, InviteeStatus
 from supabase_client import get_supabase_client
 from app.utils import send_notification_bulk
+from datetime import datetime
 
 config = dotenv_values(".env")
 
@@ -241,16 +243,29 @@ def new_hangout(
     date_range_end: str,
 ) -> dict:
     """
-    1. Raise errors if creator_id is falsey or invitee_ids is empty.
+    1. Raise errors if:
+        a. creator_username or creator_id or title are falsey.
+        b. invitee_ids is empty.
+        a. date_range_end <= date_range_start.
     2. Create new hangout object in the hangouts table.
     3. Invite people to the hangout.
     """
+    if creator_username == "":
+        raise ValueError("Creator username can not be empty")
 
-    if creator_id is None:
+    if creator_id is None or creator_id == "":
         raise InvalidUser("Creator ID can not null")
 
     if len(invitee_ids) == 0:
         raise InvalidUser("Invitee IDs can not be empty")
+
+    if title == "":
+        raise ValueError("Title can not be empty")
+
+    start = datetime.fromisoformat(date_range_start)
+    end = datetime.fromisoformat(date_range_end)
+    if end <= start:
+        raise ValueError("End date can not be before start date")
 
     supabase: Client = get_supabase_client()
 
@@ -260,7 +275,7 @@ def new_hangout(
         "title": title,
         "date_range_start": date_range_start,
         "date_range_end": date_range_end,
-        "status": "invites_sent",
+        "status": HangoutStatus.INVITES_SENT,
     }
 
     try:
@@ -284,13 +299,17 @@ def invite_users(
         b. Send a notification to the invitee.
     """
 
-    if hangout_id is None:
+    if hangout_id is None or hangout_id == "":
         raise InvalidHangout("Hangout ID can not null")
 
     supabase: Client = get_supabase_client()
 
     data = [
-        {"hangout_id": hangout_id, "user_id": invitee_id, "status": "pending"}
+        {
+            "hangout_id": hangout_id,
+            "user_id": invitee_id,
+            "status": InviteeStatus.PENDING,
+        }
         for invitee_id in invitee_ids
     ]
 
@@ -312,14 +331,14 @@ def invite_users(
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
 
-def respond_to_invite(hangout_id: str, user_id: str, status: str) -> dict:
+def respond_to_invite(hangout_id: str, user_id: str, status: InviteeStatus) -> dict:
     """
     1. Raise errors if hangout_id or user_id is falsey.
     2. Raise errors if hangout_participants row does not exist.
     3. Update the status of the hangout_participants row to incoming status.
     """
 
-    if hangout_id is None:
+    if hangout_id is None or hangout_id == "":
         raise InvalidHangout("Hangout ID can not null")
 
     supabase: Client = get_supabase_client()
@@ -348,7 +367,7 @@ def check_for_pending(hangout_id: str):
     3. If there are no pending invites, update the status of the hangout to "fetching-availability".
     """
 
-    if hangout_id is None:
+    if hangout_id is None or hangout_id == "":
         raise InvalidHangout("Hangout ID can not null")
 
     supabase: Client = get_supabase_client()
@@ -358,13 +377,13 @@ def check_for_pending(hangout_id: str):
             supabase.table("hangout_participants")
             .select()
             .eq("hangout_id", hangout_id)
-            .eq("status", "pending")
+            .eq("status", InviteeStatus.PENDING)
             .execute()
         )
 
         if not response.data:
-            supabase.table("hangouts").update({"status": "fetching-availability"}).eq(
-                "id", hangout_id
-            ).execute()
+            supabase.table("hangouts").update(
+                {"status": HangoutStatus.FETCHING_AVAILABILITY}
+            ).eq("id", hangout_id).execute()
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
