@@ -234,7 +234,7 @@ def fetch_friends(uuid: str) -> dict:
 
 
 def friends_autocomplete(uuid: str, query: str) -> dict:
-    """ 
+    """
     A function to look for partial matches when searching for friends.
 
     1. If uuid is falsy we raise an error. If the query is empty, we return nothing.
@@ -242,8 +242,8 @@ def friends_autocomplete(uuid: str, query: str) -> dict:
 
     Note: when calling this function on the frontend, make sure to throttle or debounce to prevent spam request.
 
-    Links to procedure: 
-        SQL Query: https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/api?rpc=friends_autocomplete 
+    Links to procedure:
+        SQL Query: https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/api?rpc=friends_autocomplete
         Docs: https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/sql/83099a29-8e38-402f-bb4a-c535dd0d2b29
     """
 
@@ -267,7 +267,7 @@ def friends_autocomplete(uuid: str, query: str) -> dict:
         return {
             "suggestions": [
                 {
-                    "uuid": friend['id'],
+                    "uuid": friend["id"],
                     "email": friend["email"],
                     "username": friend["username"],
                 }

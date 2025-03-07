@@ -3,6 +3,7 @@ import sys
 import uvicorn
 from dotenv import dotenv_values
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import app.data_accessor as da
@@ -10,6 +11,19 @@ from app.custom_errors import InvalidUser, UnexpectedError
 
 config = dotenv_values(".env")
 app = FastAPI()
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "https://yourdomain.com",
+    "https://www.meet-sync.us/",
+]
+
+app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True, # Allows cookies and authorization headers
+        allow_methods=["*"],    # Allows all HTTP methods
+ )
 
 
 class FriendRequest(BaseModel):
