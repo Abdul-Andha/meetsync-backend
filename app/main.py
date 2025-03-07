@@ -30,6 +30,11 @@ class DeleteNotificationRequest(BaseModel):
     user_id: str
 
 
+class FriendsAutocompleteRequest(BaseModel):
+    authenticated_user_uuid: str
+    name_to_query: str
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -99,6 +104,21 @@ async def process_fetch_friends(request: FetchFriedsRequest) -> dict:
     uuid = request.uuid
     try:
         response = da.fetch_friends(uuid)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.get("/friends-autocomplete/")
+async def process_friends_autocomplete(request: FriendsAutocompleteRequest) -> dict:
+    uuid = request.authenticated_user_uuid
+    query = request.name_to_query
+    try:
+        response = da.friends_autocomplete(uuid, query)
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}

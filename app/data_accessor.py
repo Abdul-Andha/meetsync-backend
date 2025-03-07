@@ -231,3 +231,49 @@ def fetch_friends(uuid: str) -> dict:
 
     except UnexpectedError as e:
         raise e
+
+
+def friends_autocomplete(uuid: str, query: str) -> dict:
+    """ 
+    A function to look for partial matches when searching for friends.
+
+    1. If uuid is falsy we raise an error. If the query is empty, we return nothing.
+    2. We will call a procedure that we created.
+
+    Note: when calling this function on the frontend, make sure to throttle or debounce to prevent spam request.
+
+    Links to procedure: 
+        SQL Query: https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/api?rpc=friends_autocomplete 
+        Docs: https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/sql/83099a29-8e38-402f-bb4a-c535dd0d2b29
+    """
+
+    supabase: Client = get_supabase_client()
+
+    if uuid is None:
+        raise InvalidUser("User ID can not null")
+
+    try:
+        response = supabase.rpc(
+            "friends_autocomplete",
+            {
+                "currentuser": uuid,
+                "name": query,
+            },
+        ).execute()
+
+        if not response.data:
+            return
+
+        return {
+            "suggestions": [
+                {
+                    "uuid": friend['id'],
+                    "email": friend["email"],
+                    "username": friend["username"],
+                }
+                for friend in response.data
+            ]
+        }
+
+    except UnexpectedError as e:
+        raise e
