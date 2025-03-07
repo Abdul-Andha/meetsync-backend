@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 import app.data_accessor as da
 from app.custom_errors import InvalidUser, UnexpectedError, InvalidHangout
+from app.custom_types import InviteeStatus
 
 config = dotenv_values(".env")
 app = FastAPI()
@@ -180,7 +181,7 @@ async def process_accept_invite(request: HangoutResponseRequest) -> dict:
     user_id = request.user_id
 
     try:
-        response = da.respond_to_invite(hangout_id, user_id, "accepted")
+        response = da.respond_to_invite(hangout_id, user_id, InviteeStatus.ACCEPTED)
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
@@ -196,7 +197,7 @@ async def process_decline_invite(request: HangoutResponseRequest) -> dict:
     user_id = request.user_id
 
     try:
-        response = da.respond_to_invite(hangout_id, user_id, "declined")
+        response = da.respond_to_invite(hangout_id, user_id, InviteeStatus.DECLINED)
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
