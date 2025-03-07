@@ -113,7 +113,7 @@ async def process_fetch_friends(request: FetchFriedsRequest) -> dict:
         return {"status": 500, "message": str(e)}
 
 
-@app.post("/friends-autocomplete")
+@app.get("/friends-autocomplete/")
 async def process_friends_autocomplete(request: FriendsAutocompleteRequest) -> dict:
     uuid = request.authenticated_user_uuid
     query = request.name_to_query

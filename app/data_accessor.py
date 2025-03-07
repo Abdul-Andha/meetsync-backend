@@ -251,8 +251,6 @@ def friends_autocomplete(uuid: str, query: str) -> dict:
 
     if uuid is None:
         raise InvalidUser("User ID can not null")
-    if query is None:
-        return
 
     try:
         response = supabase.rpc(
