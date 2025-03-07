@@ -13,8 +13,6 @@ config = dotenv_values(".env")
 app = FastAPI()
 origins = [
     "http://localhost",
-    "http://localhost:3000",
-    "https://yourdomain.com",
     "https://www.meet-sync.us/",
 ]
 
