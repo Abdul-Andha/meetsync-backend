@@ -231,3 +231,28 @@ def fetch_friends(uuid: str) -> dict:
 
     except UnexpectedError as e:
         raise e
+
+
+def friends_autocomplete(uuid: str, query: str) -> dict:
+    """ """
+
+    supabase: Client = get_supabase_client()
+
+    if uuid is None:
+        raise InvalidUser("User ID can not null")
+    if query is None:
+        return
+
+    try:
+        response = supabase.rpc(
+            "testing_rpc",
+            {
+                "currentuser": "3c90cb20-7b48-48ba-a64b-1e1ce27473e1",
+                "name": "mr",
+            },
+        ).execute()
+
+        return {"res" : response}
+
+    except UnexpectedError as e:
+        raise e
