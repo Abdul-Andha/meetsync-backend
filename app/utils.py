@@ -1,7 +1,7 @@
 from supabase import Client
 
 from app.custom_errors import UnexpectedError
-from supabase_client import get_supabase_client
+from app.supabase_client import get_supabase_client
 
 
 def send_notification(

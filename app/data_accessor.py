@@ -3,7 +3,7 @@ from supabase import Client
 
 from app.custom_errors import InvalidUser, InvalidHangout, UnexpectedError
 from app.custom_types import HangoutStatus, InviteeStatus
-from supabase_client import get_supabase_client
+from app.supabase_client import get_supabase_client
 from app.utils import send_notification_bulk
 from datetime import datetime
 
