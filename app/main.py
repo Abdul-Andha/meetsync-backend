@@ -12,7 +12,7 @@ from app.custom_errors import InvalidUser, UnexpectedError
 config = dotenv_values(".env")
 app = FastAPI()
 origins = [
-    "http://localhost",
+    "http://localhost:3000",
     "https://www.meet-sync.us/",
 ]
 
