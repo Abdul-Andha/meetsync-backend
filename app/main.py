@@ -39,12 +39,6 @@ class DeleteNotificationRequest(BaseModel):
     notification_id: str
     user_id: str
 
-
-class FriendsAutocompleteRequest(BaseModel):
-    authenticated_user_uuid: str
-    name_to_query: str
-
-
 class HangoutRequest(BaseModel):
     creator_username: str
     creator_id: str
@@ -138,9 +132,11 @@ async def process_fetch_friends(request: FetchFriedsRequest) -> dict:
 
 
 @app.get("/friends-autocomplete/")
-async def process_friends_autocomplete(request: FriendsAutocompleteRequest) -> dict:
-    uuid = request.authenticated_user_uuid
-    query = request.name_to_query
+async def process_friends_autocomplete(
+    authenticated_user_uuid: str, query: str
+) -> dict:
+    uuid = authenticated_user_uuid
+    query = query
     try:
         response = da.friends_autocomplete(uuid, query)
         return response

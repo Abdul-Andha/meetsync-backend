@@ -263,7 +263,7 @@ def friends_autocomplete(uuid: str, query: str) -> dict:
         ).execute()
 
         if not response.data:
-            return
+            return {"suggestions": []}
 
         return {
             "suggestions": [
