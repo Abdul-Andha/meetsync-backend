@@ -5,11 +5,11 @@ from app.supabase_client import get_supabase_client
 
 
 def send_notification(
-    sender: str | None,
+    sender: str,
     receiver: str,
     msg: str,
     noti_type: str,
-    hangout_id: str | None = None,
+    hangout_id: str = None,
 ) -> dict:
     """
     A helper function to send notification to a user
@@ -53,11 +53,11 @@ def send_notification(
 
 
 def send_notification_bulk(
-    sender: str | None,
+    sender: str,
     receivers: list[str],
     msg: str,
     noti_type: str,
-    hangout_id: str | None = None,
+    hangout_id: str = None,
 ) -> dict:
     """
     A helper function to send bulk notifications to users. One sender, multiple receivers

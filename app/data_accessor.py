@@ -272,7 +272,7 @@ def friends_autocomplete(uuid: str, query: str) -> dict:
                     "email": friend["email"],
                     "username": friend["username"],
                 }
-                for friend in response.data
+                for friend in response.data if friend["id"] != uuid
             ]
         }
 
