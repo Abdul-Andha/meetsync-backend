@@ -11,7 +11,8 @@ config = dotenv_values(".env")
 app = FastAPI()
 origins = [
     "http://localhost:3000",
-    "https://www.meet-sync.us/",
+    "https://www.meet-sync.us",
+    "https://meet-sync.us",
 ]
 
 app.add_middleware(
@@ -38,6 +39,7 @@ class NotificationRequest(BaseModel):
 class DeleteNotificationRequest(BaseModel):
     notification_id: str
     user_id: str
+
 
 class HangoutRequest(BaseModel):
     creator_username: str
