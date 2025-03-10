@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import app.data_accessor as da
-from app.custom_errors import InvalidUser, UnexpectedError, InvalidHangout
+from app.custom_errors import InvalidHangout, InvalidUser, UnexpectedError
 from app.custom_types import InviteeStatus
 
 config = dotenv_values(".env")
@@ -20,6 +20,7 @@ app.add_middleware(
     allow_origins=origins,
     allow_credentials=True,  # Allows cookies and authorization headers
     allow_methods=["*"],  # Allows all HTTP methods
+    allow_headers=["*"],  # Allows all headers
 )
 
 
