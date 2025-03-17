@@ -10,3 +10,8 @@ class InviteeStatus(str, Enum):
     PENDING = "pending"
     ACCEPTED = "accepted"
     DECLINED = "declined"
+
+
+class FriendStatus(str, Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
