@@ -13,6 +13,7 @@ origins = [
     "http://localhost:3000",
     "https://www.meet-sync.us",
     "https://meet-sync.us",
+    "https://*.vercel.app",
 ]
 
 app.add_middleware(
