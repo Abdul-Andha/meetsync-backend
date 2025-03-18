@@ -447,7 +447,7 @@ def get_hangouts(user_id: str):
     """
 
     if not user_id:
-        raise ValueError("User ID cannot be null")
+        raise InvalidUser("User ID cannot be null")
 
     supabase: Client = get_supabase_client()
 
