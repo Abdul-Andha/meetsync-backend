@@ -18,15 +18,19 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,  
-    allow_methods=["*"],  
-    allow_headers=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
 class FriendRequest(BaseModel):
     user_A: str
     user_B: str
+
+
+class AcceptOrDeclineFriendRequest(BaseModel):
+    friendship_id: int
 
 
 class FetchFriedsRequest(BaseModel):
@@ -64,12 +68,27 @@ async def root():
     return {"message": "Hello World"}
 
 
-@app.post("/add-friend")
-async def process_add_friends(request: FriendRequest) -> dict:
-    user_A = request.user_A
+@app.post("/send-friend-request")
+async def process_send_friend_request(request: FriendRequest) -> dict:
+    user_A = request.user_A # userA is the sender ( the person who sent the friend request )
     user_B = request.user_B
     try:
-        response = da.add_new_friend(user_A, user_B)
+        response = da.send_friend_request(user_A, user_B)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/add-friend")
+async def process_add_friend(request: AcceptOrDeclineFriendRequest) -> dict:
+    friendship_id = request.friendship_id
+
+    try:
+        response = da.accept_friendship(friendship_id)
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
@@ -80,11 +99,14 @@ async def process_add_friends(request: FriendRequest) -> dict:
 
 
 @app.post("/remove-friend")
-async def process_remove_friends(request: FriendRequest) -> dict:
-    user_A = request.user_A
-    user_B = request.user_B
+async def process_remove_friends(request: AcceptOrDeclineFriendRequest) -> dict:
+    """
+    Use this route to decline a friend request and to remove a friend
+    """
+    friendship_id = request.friendship_id
+
     try:
-        response = da.remove_friend(user_A, user_B)
+        response = da.remove_friend(friendship_id)
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
