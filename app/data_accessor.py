@@ -435,3 +435,35 @@ def check_for_pending(hangout_id: str):
             ).eq("id", hangout_id).execute()
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
+    
+    
+def get_hangouts(user_id: str):
+    """
+    Retrieve all hangouts for a given user.
+
+    1. Raise an error if `user_id` is falsy.
+    2. Query the `hangouts` table to fetch hangouts where the user is the creator or an invitee.
+    3. Return the list of hangouts ordered by `scheduled_time`.
+    """
+
+    if not user_id:
+        raise ValueError("User ID cannot be null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("hangouts")
+            .select()
+            .or_(f"creator_id.eq.{user_id},invitee_ids.cs.{{{user_id}}}")
+            .order("scheduled_time", desc=False)
+            .execute()
+        )
+
+        if response.data:
+            return {"status": 200, "hangouts": response.data}
+        return {"status": 200, "hangouts": []}
+
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
