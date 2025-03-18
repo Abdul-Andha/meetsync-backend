@@ -59,6 +59,9 @@ class HangoutResponseRequest(BaseModel):
     hangout_id: str
     user_id: str
 
+class GetHangoutsRequest(BaseModel):
+    user_id: str
+
 
 @app.get("/")
 async def root():
@@ -169,7 +172,20 @@ async def process_friends_autocomplete(
         return {"status": 400, "message": str(e)}
     except ValueError as e:
         return {"status": 400, "message": str(e)}
-
+    
+    
+@app.post("/get-hangouts")
+async def get_hangouts_route(request: GetHangoutsRequest) -> dict:
+    user_id = request.user_id
+    try:
+        response = da.get_hangouts(user_id)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except UnexpectedError as e:
+        return {"status": 500, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
 
 @app.post("/new-hangout")
 async def process_new_hangout(request: HangoutRequest) -> dict:
