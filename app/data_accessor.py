@@ -3,8 +3,13 @@ from datetime import datetime
 from dotenv import dotenv_values
 from supabase import Client
 
-from app.custom_errors import InvalidHangout, InvalidUser, UnexpectedError
-from app.custom_types import HangoutStatus, InviteeStatus
+from app.custom_errors import (
+    InvalidFriendship,
+    InvalidHangout,
+    InvalidUser,
+    UnexpectedError,
+)
+from app.custom_types import FriendStatus, HangoutStatus, InviteeStatus
 from app.supabase_client import get_supabase_client
 from app.utils import send_notification_bulk
 
@@ -43,7 +48,7 @@ def check_for_friendship(user_A: str, user_B: str):
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
 
-def add_new_friend(user_A: str, user_B: str) -> dict:
+def send_friend_request(user_A: str, user_B: str) -> dict:
     """
     1. Raise errors if user_id or friend_id is falsey
     2. Initialize variables:
@@ -73,10 +78,15 @@ def add_new_friend(user_A: str, user_B: str) -> dict:
             data = {
                 "user_A": primary,
                 "user_B": secondary,
+                "status": FriendStatus.PENDING,
+                "sender": user_A
             }
             response = supabase.table("friends").insert(data).execute()
             if response.data[0]["id"]:
-                return {"status": 200, "message": "Succesfully created the friendship."}
+                return {
+                    "status": 200,
+                    "message": "Succesfully sent the friend request.",
+                }
     except UnexpectedError as e:
         raise e
 
@@ -86,44 +96,38 @@ def add_new_friend(user_A: str, user_B: str) -> dict:
     }
 
 
-def remove_friend(user_A: str, user_B: str) -> dict:
+def remove_friend(friendship_id: str):
     """
-    1. Raise errors if user_id or friend_id is falsey
-    2. Initialize variables:
-        primary = smaller id
-        secondary = larger id
-    3. Checks for entries in `friends` table
-    4. If there are no entries, we will return a message to the caller.
-    5. If there are , we will delete the row
+    1. Removing a friend request by deleting the row from the `friends` table
+    2. If no rows were updated, we return an error response.
+    3. If friendship_id is falsy, we raise an InvalidFriendship error. 
     """
+
+    if friendship_id is None or friendship_id == "":
+        raise InvalidFriendship("Friendship ID can not null")
 
     supabase: Client = get_supabase_client()
 
-    if user_A is None:
-        raise InvalidUser("User ID can not null")
-    if user_B is None:
-        raise InvalidUser("Friend ID can not null")
-    if user_A == user_B:
-        raise ValueError(
-            f"The IDs of the users can not be the same. User A: {user_A}, User B: {user_B}"
+    try:
+        check_response = (
+            supabase.table("friends").select().eq("id", friendship_id).execute()
         )
 
-    primary, secondary = (user_A, user_B) if user_A < user_B else (user_B, user_A)
+        if len(check_response.data) == 0:
+            return {"error": 500, "message": "Friendship does not exist"}
 
-    try:
-        friendship_id = check_for_friendship(primary, secondary)
-    except UnexpectedError as e:
-        raise e
+        response = (
+            supabase.table("friends")
+            .delete()
+            .eq("id", friendship_id)
+            .execute()
+        )
 
-    if friendship_id is None:
-        return {
-            "status": 500,
-            "message": "Unable to remove friends. Users are not in a friendship.",
-        }
-
-    response = supabase.table("friends").delete().eq("id", friendship_id).execute()
-    if response.data[0]["id"]:
-        return {"status": 200, "message": "Succesfully removed the friendship"}
+        if(response.data[0]["id"] == friendship_id):
+            return {"status": 200, "message": "Succesfully removed the friendship."}
+    
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
 
 
 def get_notifications(user_id: str):
@@ -228,6 +232,13 @@ def fetch_friends(uuid: str) -> dict:
             .or_(f"user_A.eq.{uuid},user_B.eq.{uuid}")
             .execute()
         )
+
+        response = supabase.rpc(
+            "fetch_friends",
+            {
+                "currentuser": uuid,
+            },
+        ).execute()
 
         return {"status": 200, "friends": response.data}
 
@@ -433,5 +444,42 @@ def check_for_pending(hangout_id: str):
             supabase.table("hangouts").update(
                 {"status": HangoutStatus.FETCHING_AVAILABILITY}
             ).eq("id", hangout_id).execute()
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def accept_friendship(friendship_id: str):
+    """
+    1. Accepting a friend request by changing status from pending to accepted.
+    2. If no rows were updated, we return an error response.
+    3. If friendship_id is falsy, we raise an InvalidFriendship error. 
+    4. If users are already friends, we return an error response.
+    """
+
+    if friendship_id is None or friendship_id == "":
+        raise InvalidFriendship("Friendship ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        check_response = (
+            supabase.table("friends").select().eq("id", friendship_id).execute()
+        )
+
+        if len(check_response.data) == 0:
+            return {"error": 500, "message": "Friendship does not exist"}
+        
+        if(check_response.data[0]["status"] == FriendStatus.ACCEPTED):
+            return {"error": 500, "message": "Users are already friends"}
+
+        response = (
+            supabase.table("friends")
+            .update({"status": FriendStatus.ACCEPTED})
+            .eq("id", friendship_id)
+            .execute()
+        )
+
+        return {"status": 200, "message": "Succesfully accepted the friend request."}
+    
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
