@@ -435,3 +435,20 @@ def check_for_pending(hangout_id: str):
             ).eq("id", hangout_id).execute()
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def get_hangout_participants(hangout_id: str):
+    """WIP"""
+
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("hangout_participants").select().eq("hangout_id", hangout_id)
+        )
+        print(response.data)
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
