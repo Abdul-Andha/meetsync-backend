@@ -522,7 +522,13 @@ def check_for_pending(hangout_id: str):
 
 
 def get_hangout_participants(hangout_id: str):
-    """WIP"""
+    """
+    Retrieve all active participants in specified hangout
+
+    1. Raise error if hangout_id is falsey.
+    2. Query supabase for participants in hangout that have accepted
+    3. Return queried results or [] if none found
+    """
 
     if hangout_id is None or hangout_id == "":
         raise InvalidHangout("Hangout ID can not null")
@@ -531,9 +537,17 @@ def get_hangout_participants(hangout_id: str):
 
     try:
         response = (
-            supabase.table("hangout_participants").select().eq("hangout_id", hangout_id)
+            supabase.table("hangout_participants")
+            .select()
+            .eq("hangout_id", hangout_id)
+            .eq("status", "accepted")
+            .execute()
         )
-        print(response.data)
+
+        if response.data:
+            return {"status": 200, "hangouts": response.data}
+        return {"status": 200, "hangouts": []}
+
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
