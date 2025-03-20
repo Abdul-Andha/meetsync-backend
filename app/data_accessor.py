@@ -21,7 +21,7 @@ config = dotenv_values(".env")
 def check_for_friendship(user_A: str, user_B: str):
     """
     A helper function to retrive a row in the friends table.
-
+    
     NOTE: This function assumes that user_A < user_B.
 
     So make sure you do this check before passing in the values:
@@ -151,17 +151,47 @@ def get_notifications(user_id: str):
     try:
         response = (
             supabase.table("notifications")
-            .select("*, users(username, profile_img)")
+            .select("*, users!inner(username, profile_img)")
             .eq("user_id", user_id)
-            .eq("users.auth_id", user_id)
             .order("created_at", desc=True)
             .execute()
         )
 
-        return {"status": 200, "notifications": response.data} if response.data else {"status": 200, "notifications": []}
+        notifications = response.data if response.data else []
+        '''
+        for notif in notifications:
+            notif['users'] = get_user_info(notif['sender'])
+        '''
+
+        return {"status": 200, "notifications": notifications} 
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
+    
+def get_user_info(user_id: str) -> dict:
+    '''
+    Retrieves username and profile_img for a given user
+    '''
+
+    if not user_id:
+        raise InvalidUser("User ID cannot be null")
+    
+    supabase: Client = get_supabase_client()
+    try:
+        response = (
+            supabase
+            .from_("users")
+            .select("username, profile_img")
+            .eq("auth_id", user_id) 
+            .single() 
+            .execute()
+        )
+
+        return response.data if response.data else {'username': "Unknown", 'profile_img': None}
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
 
 def update_notification(notification_id: str, message: str) -> dict:
     """

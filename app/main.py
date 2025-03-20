@@ -8,7 +8,7 @@ from app.custom_errors import InvalidHangout, InvalidUser, UnexpectedError, Inva
 from app.custom_types import InviteeStatus
 
 config = dotenv_values(".env")
-app = FastAPI()
+app = FastAPI(debug=True)
 origins = [
     "http://localhost:3000",
     "https://www.meet-sync.us",
