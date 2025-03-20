@@ -149,15 +149,15 @@ def get_notifications(user_id: str):
     try:
         response = (
             supabase.table("notifications")
-            .select()
+            .select("*, users(username, profile_img)")
             .eq("user_id", user_id)
+            .eq("users.auth_id", user_id)
             .order("created_at", desc=True)
             .execute()
         )
 
         if response.data:
-            return {"status": 200, "notifications": response.data}
-        return {"status": 200, "notifications": response.data}
+            return {"status": 200, "notifications": response.data} if response.data else {"status": 200, "notifications": []}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
