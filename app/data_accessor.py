@@ -8,6 +8,8 @@ from app.custom_errors import (
     InvalidHangout,
     InvalidUser,
     UnexpectedError,
+    InvalidNotificationMessage,
+    InvalidNotificationId
 )
 from app.custom_types import FriendStatus, HangoutStatus, InviteeStatus
 from app.supabase_client import get_supabase_client
@@ -156,8 +158,37 @@ def get_notifications(user_id: str):
             .execute()
         )
 
-        if response.data:
-            return {"status": 200, "notifications": response.data} if response.data else {"status": 200, "notifications": []}
+        return {"status": 200, "notifications": response.data} if response.data else {"status": 200, "notifications": []}
+
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+def update_notification(notification_id: str, message: str) -> dict:
+    """
+    Updates a notification message and type
+
+    1. Raises errors if 'notification_id' or 'message" is falsy
+    2. Updates the row with message and a type of general
+    3. Returns a status code of success else 404 error
+    """
+
+    if not notification_id:
+        raise InvalidNotificationId("Notification ID cannot be null")
+    if not message:
+        raise InvalidNotificationMessage('Notification message cannot be null')
+    
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("notifications")
+            .update({'message':message, "type": "general"})
+            .eq("id", notification_id)
+            .execute()
+        )
+
+        return { "status": 200, "message": "Notification updated successfully" } if response.data else {"status": 500, "message": "Something went wrong with updating notification"}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
