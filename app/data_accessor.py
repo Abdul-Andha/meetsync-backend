@@ -151,17 +151,17 @@ def get_notifications(user_id: str):
     try:
         response = (
             supabase.table("notifications")
-            .select("*, users!inner(username, profile_img)")
+            .select("*")
             .eq("user_id", user_id)
             .order("created_at", desc=True)
             .execute()
         )
 
         notifications = response.data if response.data else []
-        '''
+        
         for notif in notifications:
-            notif['users'] = get_user_info(notif['sender'])
-        '''
+            notif['users'] = get_user_info(notif['sender']) if notif['sender'] else {'username': "Unknown", 'profile_img': None}
+        
 
         return {"status": 200, "notifications": notifications} 
 
@@ -471,7 +471,7 @@ def respond_to_invite(hangout_id: str, user_id: str, status: InviteeStatus) -> d
             .eq("user_id", user_id)
             .execute()
         )
-
+        
         if response.data:
             check_for_pending(hangout_id)
             return {"status": 200, "message": "Succesfully updated the invite."}
