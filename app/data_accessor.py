@@ -138,6 +138,7 @@ def get_notifications(user_id: str):
 
     1. Raise an error if `user_id` is falsy.
     2. Query the `notifications` table to fetch notifications for the user.
+    3. For each notification, if there's a sender, retrieve sender username & profile_img
     3. Return the list of notifications.
 
     If an error occurs, raise an UnexpectedError.
@@ -171,6 +172,10 @@ def get_notifications(user_id: str):
 def get_user_info(user_id: str) -> dict:
     '''
     Retrieves username and profile_img for a given user
+
+    1. Raise an error if user_id is null / falsey
+    2. Query supabase for user with user_id, to retrieve username and profile_img
+    3. Return response.data if not falsey, else return default dictionary 
     '''
 
     if not user_id:
