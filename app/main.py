@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import app.data_accessor as da
 from app.custom_errors import InvalidHangout, InvalidUser, UnexpectedError
 from app.custom_types import InviteeStatus
+from app.algo import getRecommendations
 
 config = dotenv_values(".env")
 app = FastAPI()
@@ -18,9 +19,9 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,  
-    allow_methods=["*"],  
-    allow_headers=["*"],  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -54,6 +55,10 @@ class HangoutRequest(BaseModel):
 class HangoutResponseRequest(BaseModel):
     hangout_id: str
     user_id: str
+
+
+class AlgoRequest(BaseModel):
+    hangout_id: str
 
 
 @app.get("/")
@@ -201,6 +206,21 @@ async def process_decline_invite(request: HangoutResponseRequest) -> dict:
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
     except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/algo-test")
+async def process_algo_test(request: AlgoRequest) -> dict:
+    hangout_id = request.hangout_id
+
+    try:
+        response = getRecommendations(hangout_id)
+        return response
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
