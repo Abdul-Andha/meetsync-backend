@@ -4,8 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import app.data_accessor as da
-from app.custom_errors import InvalidHangout, InvalidUser, UnexpectedError, InvalidNotificationId, InvalidNotificationMessage
+from app.custom_errors import (
+    InvalidHangout,
+    InvalidUser,
+    UnexpectedError,
+    InvalidNotificationId,
+    InvalidNotificationMessage,
+)
 from app.custom_types import InviteeStatus
+from app.algo import getRecommendations
 
 config = dotenv_values(".env")
 app = FastAPI(debug=True)
@@ -42,9 +49,11 @@ class FetchFriedsRequest(BaseModel):
 class NotificationRequest(BaseModel):
     user_id: str
 
+
 class UpdateNotificationRequest(BaseModel):
     notification_id: str
     new_message: str
+
 
 class DeleteNotificationRequest(BaseModel):
     notification_id: str
@@ -64,8 +73,13 @@ class HangoutResponseRequest(BaseModel):
     hangout_id: str
     user_id: str
 
+
 class GetHangoutsRequest(BaseModel):
     user_id: str
+
+
+class AlgoRequest(BaseModel):
+    hangout_id: str
 
 
 @app.get("/")
@@ -75,7 +89,9 @@ async def root():
 
 @app.post("/send-friend-request")
 async def process_send_friend_request(request: FriendRequest) -> dict:
-    user_A = request.user_A # userA is the sender ( the person who sent the friend request )
+    user_A = (
+        request.user_A
+    )  # userA is the sender ( the person who sent the friend request )
     user_B = request.user_B
     try:
         response = da.send_friend_request(user_A, user_B)
@@ -133,7 +149,8 @@ async def fetch_notifications(request: NotificationRequest) -> dict:
         return {"status": 500, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
-    
+
+
 @app.post("/update-notification")
 async def change_notification(request: UpdateNotificationRequest) -> dict:
     notification_id = request.notification_id
@@ -193,8 +210,8 @@ async def process_friends_autocomplete(
         return {"status": 400, "message": str(e)}
     except ValueError as e:
         return {"status": 400, "message": str(e)}
-    
-    
+
+
 @app.post("/get-hangouts")
 async def get_hangouts_route(request: GetHangoutsRequest) -> dict:
     user_id = request.user_id
@@ -207,6 +224,7 @@ async def get_hangouts_route(request: GetHangoutsRequest) -> dict:
         return {"status": 500, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
 
 @app.post("/new-hangout")
 async def process_new_hangout(request: HangoutRequest) -> dict:
@@ -260,6 +278,21 @@ async def process_decline_invite(request: HangoutResponseRequest) -> dict:
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
     except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/algo-test")
+async def process_algo_test(request: AlgoRequest) -> dict:
+    hangout_id = request.hangout_id
+
+    try:
+        response = getRecommendations(hangout_id)
+        return response
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}

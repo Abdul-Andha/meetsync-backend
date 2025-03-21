@@ -521,6 +521,32 @@ def check_for_pending(hangout_id: str):
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
 
+def get_hangout(hangout_id: str):
+    """
+    Retrieve hangout object from supabase
+
+    1. Raise error if hangout_id is falsey.
+    2. Query supabase for hangout row
+    """
+
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("hangouts").select().eq("id", hangout_id).single().execute()
+        )
+
+        if response.data:
+            return {"status": 200, "hangout": response.data}
+        return {"status": 200, "hangout": []}
+
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
 def get_hangout_participants(hangout_id: str):
     """
     Retrieve all active participants in specified hangout
@@ -545,8 +571,8 @@ def get_hangout_participants(hangout_id: str):
         )
 
         if response.data:
-            return {"status": 200, "hangouts": response.data}
-        return {"status": 200, "hangouts": []}
+            return {"status": 200, "participants": response.data}
+        return {"status": 200, "participants": []}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")

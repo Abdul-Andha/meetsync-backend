@@ -1,13 +1,23 @@
 import requests
 from shapely.geometry import Polygon, MultiPolygon, Point
 from dotenv import dotenv_values
-from custom_errors import UnexpectedError
+from app.custom_errors import InvalidHangout, UnexpectedError
+from app.custom_types import HangoutStatus
+import app.data_accessor as da
 
 config = dotenv_values(".env")
 
 
-def getIsochrones(startingPoints, times, transportModes):
-    n = len(startingPoints)
+def getIsochrones(startPoints, times, transportModes):
+    """
+    Retrieve isochrones for all users
+
+    1. Raise errors if lengths of input lists are not equal
+    2. Send POST request to TravelTime API
+    3. Return list of MultiPolygons of isochrones
+    """
+
+    n = len(startPoints)
     if len(times) != n or len(transportModes) != n:
         raise ValueError("All input lists must have the same length")
 
@@ -25,7 +35,7 @@ def getIsochrones(startingPoints, times, transportModes):
         search = {
             "id": f"isochrone-{i}",
             "travel_time": times[i] * 60,
-            "coords": {"lng": startingPoints[i][1], "lat": startingPoints[i][0]},
+            "coords": {"lng": startPoints[i][0], "lat": startPoints[i][1]},
             "transportation": {"type": transportModes[i]},
             "arrival_time_period": "weekday_morning",
             "level_of_detail": {"scale_type": "simple", "level": "medium"},
@@ -41,7 +51,6 @@ def getIsochrones(startingPoints, times, transportModes):
 
     response = requests.post(URL, json=body, headers=headers)
     data = response.json()
-
     multiPolygons = []
     for i in range(n):
         shapes = data["results"][i]["shapes"]
@@ -59,6 +68,12 @@ def getIsochrones(startingPoints, times, transportModes):
 
 
 def getEnclosingCircle(polygon):
+    """
+    Given a polygon, return a circle that encloses it
+
+    1. Returns center and radius of the enclosing circle
+    """
+
     if isinstance(polygon, MultiPolygon):
         polygon = max(polygon.geoms, key=lambda p: p.area)
 
@@ -69,9 +84,17 @@ def getEnclosingCircle(polygon):
 
 
 def getPlaces(polygon, center, radius):
+    """
+    Returns places within the polygon
+
+    1. Send POST request to Google Places API to get places within radius of center
+    2. Filter out places that are not within the polygon
+    3. Return filtered places
+    """
+
     URL = "https://places.googleapis.com/v1/places:searchNearby"
     headers = {
-        "X-Goog-Api-Key": config["GOOG_API_KEY"],
+        "X-Goog-Api-Key": config["GOOGLE_API_KEY"],
         "Content-Type": "application/json",
         "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location",
     }
@@ -98,6 +121,10 @@ def getPlaces(polygon, center, radius):
 
 
 def getOverlap(polygons):
+    """
+    Returns the overlap of multiple polygons
+    """
+
     if len(polygons) == 0:
         return None
 
@@ -109,6 +136,15 @@ def getOverlap(polygons):
 
 
 def getGeocodes(addresses: list[str]):
+    """
+    Returns the geocodes for a list of addresses
+
+    1. Raise error if addresses is empty
+    2. Send POST request to Mapbox API
+    3. Raise error if any address does not map to a geocode
+    4. Return list of geocodes
+    """
+
     if len(addresses) == 0:
         raise ValueError("Addresses array can't be empty")
 
@@ -136,6 +172,27 @@ def getGeocodes(addresses: list[str]):
     return geocodes
 
 
+def getAlgoInputs(hangout_id: str):
+    """
+    Returns the addresses, travel times, and transport modes for all participants in a hangout
+    """
+    try:
+        participants = da.get_hangout_participants(hangout_id)["participants"]
+
+        startAddresses = []
+        travelTimes = []
+        transportModes = []
+        for participant in participants:
+            startAddresses.append(participant["start_address"])
+            travelTimes.append(participant["travel_time"])
+            transportModes.append(participant["transport"])
+
+    except Exception as e:
+        raise UnexpectedError(e)
+
+    return startAddresses, travelTimes, transportModes
+
+
 """
 TODO: main function that does the following: (does this after availability algo is done and addresses/times/transports are confirmed)
 1. takes in hangout_id param
@@ -147,3 +204,56 @@ TODO: main function that does the following: (does this after availability algo 
 7. getPlaces in circle and filter out whatevers not in overlap (error if no places found)
 8. return list of filteredPlaces (might want to store this in supabase too)
 """
+
+
+def getRecommendations(hangout_id: int):
+    """
+    Returns a list of recommended places for the hangout
+
+    1. Raise error if hangout_id is falsey
+    2. Get hangout from supabase
+        a. Raise error if hangout status is not determining-location
+    3. Get addresses, travel times, and transport modes for all participants
+        a. Raise error if lengths of input lists are not equal
+    4. Get geocodes for all addresses
+    5. Get isochrones for all participants
+    6. Get overlap of isochrones
+        a. Raise error if no overlap
+    7. Get enclosing circle of overlap
+    8. Get places within circle and filter out places not in overlap
+        a. Raise error if no places found
+    9. Return list of filtered places
+    """
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    try:
+        hangout = da.get_hangout(hangout_id)["hangout"]
+        if hangout["status"] != HangoutStatus.DETERMINING_LOCATION:
+            raise ValueError(
+                f"Hangout status must be determining-location not {hangout['status']}"
+            )
+
+        startAddresses, travelTimes, transportModes = getAlgoInputs(hangout_id)
+        if len(startAddresses) != len(travelTimes) or len(startAddresses) != len(
+            transportModes
+        ):
+            raise ValueError(
+                "Lengths of startAddresses, travelTimes, and transportModes must be equal"
+            )
+        startPoints = getGeocodes(startAddresses)
+
+        isochrones = getIsochrones(startPoints, travelTimes, transportModes)
+        overlap = getOverlap(isochrones)
+        if overlap is None or overlap.is_empty:
+            raise ValueError("No overlap between isochrones")
+
+        center, radius = getEnclosingCircle(overlap)
+        filteredPlaces = getPlaces(overlap, center, radius)
+        if len(filteredPlaces) == 0:
+            raise ValueError("No places found within overlap")
+
+        return {"status": 200, "places": filteredPlaces}
+
+    except Exception as e:
+        raise UnexpectedError(e)
