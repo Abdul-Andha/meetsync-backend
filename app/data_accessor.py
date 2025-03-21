@@ -8,6 +8,8 @@ from app.custom_errors import (
     InvalidHangout,
     InvalidUser,
     UnexpectedError,
+    InvalidNotificationMessage,
+    InvalidNotificationId
 )
 from app.custom_types import FriendStatus, HangoutStatus, InviteeStatus
 from app.supabase_client import get_supabase_client
@@ -19,7 +21,7 @@ config = dotenv_values(".env")
 def check_for_friendship(user_A: str, user_B: str):
     """
     A helper function to retrive a row in the friends table.
-
+    
     NOTE: This function assumes that user_A < user_B.
 
     So make sure you do this check before passing in the values:
@@ -136,6 +138,7 @@ def get_notifications(user_id: str):
 
     1. Raise an error if `user_id` is falsy.
     2. Query the `notifications` table to fetch notifications for the user.
+    3. For each notification, if there's a sender, retrieve sender username & profile_img
     3. Return the list of notifications.
 
     If an error occurs, raise an UnexpectedError.
@@ -149,15 +152,78 @@ def get_notifications(user_id: str):
     try:
         response = (
             supabase.table("notifications")
-            .select()
+            .select("*")
             .eq("user_id", user_id)
             .order("created_at", desc=True)
             .execute()
         )
 
-        if response.data:
-            return {"status": 200, "notifications": response.data}
-        return {"status": 200, "notifications": response.data}
+        notifications = response.data if response.data else []
+        
+        for notif in notifications:
+            notif['users'] = get_user_info(notif['sender']) if notif['sender'] else {'username': "Unknown", 'profile_img': None}
+        
+
+        return {"status": 200, "notifications": notifications} 
+
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+    
+def get_user_info(user_id: str) -> dict:
+    '''
+    Retrieves username and profile_img for a given user
+
+    1. Raise an error if user_id is null / falsey
+    2. Query supabase for user with user_id, to retrieve username and profile_img
+    3. Return response.data if not falsey, else return default dictionary 
+    '''
+
+    if not user_id:
+        raise InvalidUser("User ID cannot be null")
+    
+    supabase: Client = get_supabase_client()
+    try:
+        response = (
+            supabase
+            .from_("users")
+            .select("username, profile_img")
+            .eq("auth_id", user_id) 
+            .single() 
+            .execute()
+        )
+
+        return response.data if response.data else {'username': "Unknown", 'profile_img': None}
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+
+def update_notification(notification_id: str, message: str) -> dict:
+    """
+    Updates a notification message and type
+
+    1. Raises errors if 'notification_id' or 'message" is falsy
+    2. Updates the row with message and a type of general
+    3. Returns a status code of success else 404 error
+    """
+
+    if not notification_id:
+        raise InvalidNotificationId("Notification ID cannot be null")
+    if not message:
+        raise InvalidNotificationMessage('Notification message cannot be null')
+    
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("notifications")
+            .update({'message':message, "type": "general"})
+            .eq("id", notification_id)
+            .execute()
+        )
+
+        return { "status": 200, "message": "Notification updated successfully" } if response.data else {"status": 500, "message": "Something went wrong with updating notification"}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
@@ -410,7 +476,7 @@ def respond_to_invite(hangout_id: str, user_id: str, status: InviteeStatus) -> d
             .eq("user_id", user_id)
             .execute()
         )
-
+        
         if response.data:
             check_for_pending(hangout_id)
             return {"status": 200, "message": "Succesfully updated the invite."}

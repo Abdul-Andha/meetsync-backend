@@ -4,11 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 import app.data_accessor as da
-from app.custom_errors import InvalidHangout, InvalidUser, UnexpectedError
+from app.custom_errors import InvalidHangout, InvalidUser, UnexpectedError, InvalidNotificationId, InvalidNotificationMessage
 from app.custom_types import InviteeStatus
 
 config = dotenv_values(".env")
-app = FastAPI()
+app = FastAPI(debug=True)
 origins = [
     "http://localhost:3000",
     "https://www.meet-sync.us",
@@ -42,6 +42,9 @@ class FetchFriedsRequest(BaseModel):
 class NotificationRequest(BaseModel):
     user_id: str
 
+class UpdateNotificationRequest(BaseModel):
+    notification_id: str
+    new_message: str
 
 class DeleteNotificationRequest(BaseModel):
     notification_id: str
@@ -125,6 +128,22 @@ async def fetch_notifications(request: NotificationRequest) -> dict:
         response = da.get_notifications(user_id)
         return response
     except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except UnexpectedError as e:
+        return {"status": 500, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+    
+@app.post("/update-notification")
+async def change_notification(request: UpdateNotificationRequest) -> dict:
+    notification_id = request.notification_id
+    message = request.new_message
+    try:
+        response = da.update_notification(notification_id, message)
+        return response
+    except InvalidNotificationId as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidNotificationMessage as e:
         return {"status": 400, "message": str(e)}
     except UnexpectedError as e:
         return {"status": 500, "message": str(e)}
