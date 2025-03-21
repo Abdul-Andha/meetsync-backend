@@ -74,10 +74,13 @@ class HangoutResponseRequest(BaseModel):
     user_id: str
 
 
+<<<<<<< HEAD
 class GetHangoutsRequest(BaseModel):
     user_id: str
 
 
+=======
+>>>>>>> de6365ed0040ed0caec055f4fc8b3d199ee39f0b
 class AlgoRequest(BaseModel):
     hangout_id: str
 
