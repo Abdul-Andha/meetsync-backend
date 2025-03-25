@@ -70,7 +70,7 @@ def getIsochrones(startPoints, times, transportModes):
             multiPolygons.append(MultiPolygon(polygons))
 
     except Exception as e:
-        raise e
+        raise ExternalAPIError(e)
 
     return multiPolygons
 
@@ -116,14 +116,22 @@ def getPlaces(polygon, center, radius):
             }
         },
     }
-    response = requests.post(URL, json=body, headers=headers)
-    data = response.json()
-    places = data["places"]
-    filteredPlaces = []
-    for place in places:
-        point = Point(place["location"]["longitude"], place["location"]["latitude"])
-        if polygon.contains(point):
-            filteredPlaces.append(place)
+
+    try:
+        response = requests.post(URL, json=body, headers=headers)
+        data = response.json()
+        if data.status_code != 200:
+            raise ExternalAPIError(
+                f"GooglePlacesAPI Error {data['error_code']}: {data['error_message']}"
+            )
+        places = data["places"]
+        filteredPlaces = []
+        for place in places:
+            point = Point(place["location"]["longitude"], place["location"]["latitude"])
+            if polygon.contains(point):
+                filteredPlaces.append(place)
+    except Exception as e:
+        raise ExternalAPIError(e)
 
     return filteredPlaces
 
