@@ -1,7 +1,7 @@
 import requests
 from shapely.geometry import Polygon, MultiPolygon, Point
 from dotenv import dotenv_values
-from app.custom_errors import InvalidHangout, UnexpectedError
+from app.custom_errors import InvalidHangout, UnexpectedError, ExternalAPIError
 from app.custom_types import HangoutStatus
 import app.data_accessor as da
 
@@ -49,20 +49,28 @@ def getIsochrones(startPoints, times, transportModes):
         }
     }
 
-    response = requests.post(URL, json=body, headers=headers)
-    data = response.json()
-    multiPolygons = []
-    for i in range(n):
-        shapes = data["results"][i]["shapes"]
-        polygons = []
-        for shape in shapes:
-            shell = [(point["lng"], point["lat"]) for point in shape["shell"]]
-            holes = [
-                [(point["lng"], point["lat"]) for point in hole]
-                for hole in shape.get("holes", [])
-            ]
-            polygons.append(Polygon(shell, holes))
-        multiPolygons.append(MultiPolygon(polygons))
+    try:
+        response = requests.post(URL, json=body, headers=headers)
+        data = response.json()
+        if data.get("results") == None:
+            raise ExternalAPIError(
+                f"TravelTimeAPI Error {data['error_code']}: {data['description']}"
+            )
+        multiPolygons = []
+        for i in range(n):
+            shapes = data["results"][i]["shapes"]
+            polygons = []
+            for shape in shapes:
+                shell = [(point["lng"], point["lat"]) for point in shape["shell"]]
+                holes = [
+                    [(point["lng"], point["lat"]) for point in hole]
+                    for hole in shape.get("holes", [])
+                ]
+                polygons.append(Polygon(shell, holes))
+            multiPolygons.append(MultiPolygon(polygons))
+
+    except Exception as e:
+        raise e
 
     return multiPolygons
 
@@ -191,19 +199,6 @@ def getAlgoInputs(hangout_id: str):
         raise UnexpectedError(e)
 
     return startAddresses, travelTimes, transportModes
-
-
-"""
-TODO: main function that does the following: (does this after availability algo is done and addresses/times/transports are confirmed)
-1. takes in hangout_id param
-2. finds all hangout_participants that have accepted that hangout and gets their confirmed address, travel time, and mode of transport (error checking) 
-3. uses getGeocodes to get everyone's lat/lng
-4. uses list of lat/lng, times, and transports to getIsochrones
-5. getOvelap of isochrones (error if overlap is empty)
-6. getEnclosingCircle of overlap
-7. getPlaces in circle and filter out whatevers not in overlap (error if no places found)
-8. return list of filteredPlaces (might want to store this in supabase too)
-"""
 
 
 def getRecommendations(hangout_id: int):
