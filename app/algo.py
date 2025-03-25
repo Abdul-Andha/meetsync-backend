@@ -175,7 +175,7 @@ def getGeocodes(addresses: list[str]):
     data = response.json()
 
     if not data or data.get("batch") == None:
-        raise UnexpectedError
+        raise ExternalAPIError(f"MapboxAPI Error {data['code']}: {data['message']}")
 
     geocodes = []
     for i in range(len(data["batch"])):
