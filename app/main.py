@@ -283,13 +283,14 @@ async def process_decline_invite(request: HangoutResponseRequest) -> dict:
         return {"status": 500, "message": str(e)}
 
 
+# this is a test endpoint. It will not be called by the front end
 @app.post("/algo-test")
 async def process_algo_test(request: AlgoRequest) -> dict:
     hangout_id = request.hangout_id
 
     try:
-        response = getRecommendations(hangout_id)
-        return response
+        getRecommendations(hangout_id)
+        return True
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
     except ValueError as e:

@@ -644,3 +644,39 @@ def get_hangout_participants(hangout_id: str):
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def push_recommendations(hangout_id: str, places):
+    """
+    Push recommended places to supabase recommendations table
+
+    1. Raise error if hangout_id is falsey.
+    2. Add each place to the recommendations table
+    3. Return success message
+    """
+
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    data = [
+        {
+            "hangout_id": hangout_id,
+            "name": place["displayName"]["text"],
+            "address": place["formattedAddress"],
+            "location": place["location"],
+        }
+        for place in places
+    ]
+
+    try:
+        response = supabase.table("place_recommendations").insert(data).execute()
+
+        if response.data:
+            return {
+                "status": 200,
+                "message": "Succesfully added recommendations.",
+            }
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
