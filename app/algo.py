@@ -207,7 +207,7 @@ def getAlgoInputs(hangout_id: str):
     return startAddresses, travelTimes, transportModes
 
 
-def getRecommendations(hangout_id: int):
+def findRecommendations(hangout_id: int):
     """
     Returns a list of recommended places for the hangout
 

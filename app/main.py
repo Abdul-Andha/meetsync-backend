@@ -12,7 +12,7 @@ from app.custom_errors import (
     InvalidNotificationMessage,
 )
 from app.custom_types import InviteeStatus
-from app.algo import getRecommendations
+from app.algo import findRecommendations
 
 config = dotenv_values(".env")
 app = FastAPI(debug=True)
@@ -289,8 +289,21 @@ async def process_algo_test(request: AlgoRequest) -> dict:
     hangout_id = request.hangout_id
 
     try:
-        getRecommendations(hangout_id)
+        findRecommendations(hangout_id)
         return True
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.get("/get-recommendations")
+async def process_get_recommendations(hangout_id: str) -> dict:
+    try:
+        response = da.get_recommendations(hangout_id)
+        return response
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
     except ValueError as e:

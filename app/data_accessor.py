@@ -604,12 +604,16 @@ def get_hangout(hangout_id: str):
 
     try:
         response = (
-            supabase.table("hangouts").select().eq("id", hangout_id).single().execute()
+            supabase.table("hangouts")
+            .select()
+            .eq("id", hangout_id)
+            .maybe_single()
+            .execute()
         )
 
-        if response.data:
+        if response and response.data:
             return {"status": 200, "hangout": response.data}
-        return {"status": 200, "hangout": []}
+        return {"status": 200, "hangout": None}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
@@ -678,5 +682,43 @@ def push_recommendations(hangout_id: str, places):
                 "status": 200,
                 "message": "Succesfully added recommendations.",
             }
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def get_recommendations(hangout_id: str):
+    """
+    Get recommended places from supabase recommendations table for given hangout
+
+    1. Raise error if hangout_id is falsey
+    2. Raise error if hangout does not exist
+    3. Query supabase for recommendations
+        3a. Return 404 if none found. This should not happen because algo should run first
+        3b. Return recommendations
+    """
+
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = get_hangout(hangout_id)
+        if not response["hangout"]:
+            raise InvalidHangout("Hangout does not exist.")
+
+        response = (
+            supabase.table("place_recommendations")
+            .select()
+            .eq("hangout_id", hangout_id)
+            .execute()
+        )
+
+        if response.data:
+            return {"status": 200, "recommendations": response.data}
+        return {"status": 404, "message": "No recommendations found for hangout."}
+
+    except InvalidHangout as e:
+        raise e
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
