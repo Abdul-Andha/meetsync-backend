@@ -659,6 +659,14 @@ def vote(hangout_id: int, option_id: str, user_id: str):
     supabase: Client = get_supabase_client()
     
     try:
+
+        concluded = check_if_vote_is_concluded(supabase, hangout_id)
+
+        if concluded:
+            return {
+                "status": 500,
+                "message": "No longer accepting votes for hangout. Poll is concluded.",
+            }
     
         data = {"user_id": user_id, "option_id": option_id, "hangout_id": hangout_id}
 
@@ -744,6 +752,21 @@ def set_scheduled_time(supabase: Client, hangout_id: int):
     )
 
     return len(updated_hangout_response.data) == 1 # len is 1 if the update was succesful
+
+
+def check_if_vote_is_concluded(supabase: Client, hangout_id: int):
+    """
+    A helper function to check if a poll is not concluded
+
+    Note: `scheduled_time` is either NULL or a datetimestamp
+    
+    1. Fetches `scheduled_time` val from row.
+    2. If `scheduled_time` is not null, return true. This means theres a date timestamp
+    3. Otherwise return false, this means the value is None
+    """
+
+    hangout = supabase.table("hangouts").select("scheduled_time").eq("id", hangout_id).execute()  
+    return hangout.data[0]["scheduled_time"] is not None 
 
 
 def get_hangout(hangout_id: str):
