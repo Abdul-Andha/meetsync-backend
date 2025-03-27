@@ -78,6 +78,17 @@ class GetHangoutsRequest(BaseModel):
     user_id: str
 
 
+class CreatePollRequest(BaseModel):
+    hangout_id: int
+    options: list[str]
+
+
+class VoteRequest(BaseModel):
+    hangout_id: int
+    option_id: str
+    user_id: str
+
+
 class AlgoRequest(BaseModel):
     hangout_id: str
 
@@ -92,6 +103,7 @@ async def process_send_friend_request(request: FriendRequest) -> dict:
     user_A = (
         request.user_A
     )  # userA is the sender ( the person who sent the friend request )
+    
     user_B = request.user_B
     try:
         response = da.send_friend_request(user_A, user_B)
@@ -149,6 +161,8 @@ async def fetch_notifications(request: NotificationRequest) -> dict:
         return {"status": 500, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
+
 
 
 @app.post("/update-notification")
@@ -210,6 +224,8 @@ async def process_friends_autocomplete(
         return {"status": 400, "message": str(e)}
     except ValueError as e:
         return {"status": 400, "message": str(e)}
+
+
 
 
 @app.post("/get-hangouts")
@@ -278,6 +294,43 @@ async def process_decline_invite(request: HangoutResponseRequest) -> dict:
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
     except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/create-poll")
+async def process_create_poll(request: CreatePollRequest) -> dict:
+    hangout_id = request.hangout_id
+    options = request.options
+
+    try:
+        response = da.create_poll(hangout_id, options)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/vote")
+async def process_vote(request: VoteRequest) -> dict:
+    hangout_id = request.hangout_id
+    option_id = request.option_id
+    user_id = request.user_id
+
+    try:
+        response = da.vote(hangout_id, option_id, user_id)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
