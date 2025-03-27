@@ -593,7 +593,7 @@ def create_poll(hangout_id: str, options: list[str]):
     """
     Creates a poll for a hangout 
 
-    1. If there was more than 5 errors passed in, we raise a ValueError
+    1. If there was more than 5 options passed in, we raise a ValueError
     2. If hangout_id is falsey we raise a value error 
     3. Check if a poll is already created, if so, we return an error
     4. If all is good, we return a 200
@@ -675,7 +675,7 @@ def vote(hangout_id: int, option_id: int, user_id: str):
         if option_id not in flattened_options:
             return {
                 "status": 500,
-                "message": "Invalid voting opion",
+                "message": "Invalid voting option",
             }
 
         vote_response = (
@@ -708,7 +708,7 @@ def vote(hangout_id: int, option_id: int, user_id: str):
                update_hangout_response = set_scheduled_time(supabase,hangout_id)
                if not update_hangout_response:
                    return {
-                       "status": 200,
+                       "status": 500,
                        "message": "Successfully added vote. We tried to conclude the vote since you the final memeber to vote but there was an error while updating the hangout"
                    }
 
