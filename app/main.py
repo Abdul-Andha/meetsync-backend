@@ -85,7 +85,7 @@ class CreatePollRequest(BaseModel):
 
 class VoteRequest(BaseModel):
     hangout_id: int
-    option_id: int
+    option_id: str
     user_id: str
 
 
@@ -103,9 +103,7 @@ async def process_send_friend_request(request: FriendRequest) -> dict:
     user_A = (
         request.user_A
     )  # userA is the sender ( the person who sent the friend request )
-    user_A = (
-        request.user_A
-    )  # userA is the sender ( the person who sent the friend request )
+    
     user_B = request.user_B
     try:
         response = da.send_friend_request(user_A, user_B)

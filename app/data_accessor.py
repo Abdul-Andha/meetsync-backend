@@ -633,8 +633,7 @@ def create_poll(hangout_id: str, options: list[str]):
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
 
-# change option id and vote id to uuids
-def vote(hangout_id: int, option_id: int, user_id: str):
+def vote(hangout_id: int, option_id: str, user_id: str):
     """
     Submits a vote for a hangout
 
@@ -680,7 +679,7 @@ def vote(hangout_id: int, option_id: int, user_id: str):
 
         vote_response = (
             supabase.table("meetup_votes")
-            .upsert(data, on_conflict="user_id,hangout_id")
+            .upsert(data, on_conflict="user_id,option_id") # no-op (nothing is done) if the there is a conflic
             .execute()
         )
 
@@ -703,16 +702,16 @@ def vote(hangout_id: int, option_id: int, user_id: str):
             )
 
             flattend_user_votes = [user["user_id"] for user in user_votes.data]
+            unique_users = set(flattend_user_votes)
 
-            if len(flattend_user_votes) == len(invitees):
+            if len(unique_users) == len(invitees): # change this clause
                update_hangout_response = set_scheduled_time(supabase,hangout_id)
                if not update_hangout_response:
                    return {
                        "status": 500,
-                       "message": "Successfully added vote. We tried to conclude the vote since you the final memeber to vote but there was an error while updating the hangout"
+                       "message": "Successfully added vote. We tried to conclude the vote since you are the final memeber to vote but there was an error while updating the hangout."
                    }
 
-            print("not calling")
             return {
                 "status": 200,
                 "message": "Succesfully added your vote",
@@ -744,7 +743,7 @@ def set_scheduled_time(supabase: Client, hangout_id: int):
         .execute()
     )
 
-    return "data" in updated_hangout_response
+    return len(updated_hangout_response.data) == 1 # len is 1 if the update was succesful
 
 
 def get_hangout(hangout_id: str):
