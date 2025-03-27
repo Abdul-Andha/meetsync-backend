@@ -646,8 +646,6 @@ def vote(hangout_id: int, option_id: int, user_id: str):
         3a. If they are equal that means everyone has voted. 
         3b. We know this is true because `user_id` and `hangout_id` are a composite key in `meetup_votes` table so there will never be duplicate votes from the same user
     4. If everyone vote, we call a helper function to get the winner and update the hangouts table. The col we are updating is `scheduled_time`
-
-    
     """
 
     if not hangout_id:
@@ -730,7 +728,6 @@ def set_scheduled_time(supabase: Client, hangout_id: int):
 
     1. Get the winner view sql query : https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/sql/04256748 
     2. Update hangouts table with the value returned from the query
-
     """
     winning_time_repsponse = supabase.rpc(
         "get_vote_winner",
@@ -748,6 +745,7 @@ def set_scheduled_time(supabase: Client, hangout_id: int):
     )
 
     return "data" in updated_hangout_response
+
 
 def get_hangout(hangout_id: str):
     """
