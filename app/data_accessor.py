@@ -521,7 +521,7 @@ def check_for_pending(hangout_id: str):
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
 
-def get_hangouts(user_id: str):
+def get_user_hangouts(user_id: str):
     """
     Retrieve all hangouts for a given user.
 
@@ -748,3 +748,137 @@ def set_scheduled_time(supabase: Client, hangout_id: int):
     )
 
     return "data" in updated_hangout_response
+
+def get_hangout(hangout_id: str):
+    """
+    Retrieve hangout object from supabase given hangout_id
+
+    1. Raise error if hangout_id is falsey.
+    2. Query supabase for hangout row
+    """
+
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("hangouts")
+            .select()
+            .eq("id", hangout_id)
+            .maybe_single()
+            .execute()
+        )
+
+        if response and response.data:
+            return {"status": 200, "hangout": response.data}
+        return {"status": 200, "hangout": None}
+
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def get_hangout_participants(hangout_id: str):
+    """
+    Retrieve all active participants in specified hangout
+
+    1. Raise error if hangout_id is falsey.
+    2. Query supabase for participants in hangout that have accepted
+    3. Return queried results or [] if none found
+    """
+
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("hangout_participants")
+            .select()
+            .eq("hangout_id", hangout_id)
+            .eq("status", "accepted")
+            .execute()
+        )
+
+        if response.data:
+            return {"status": 200, "participants": response.data}
+        return {"status": 200, "participants": []}
+
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def push_recommendations(hangout_id: str, places):
+    """
+    Push recommended places to supabase recommendations table
+
+    1. Raise error if hangout_id is falsey.
+    2. Add each place to the recommendations table
+    3. Return success message
+    """
+
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    data = [
+        {
+            "hangout_id": hangout_id,
+            "name": place["displayName"]["text"],
+            "address": place["formattedAddress"],
+            "location": place["location"],
+        }
+        for place in places
+    ]
+
+    try:
+        response = supabase.table("place_recommendations").insert(data).execute()
+
+        if response.data:
+            return {
+                "status": 200,
+                "message": "Succesfully added recommendations.",
+            }
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def get_recommendations(hangout_id: str):
+    """
+    Get recommended places from supabase recommendations table for given hangout
+
+    1. Raise error if hangout_id is falsey
+    2. Raise error if hangout does not exist
+    3. Query supabase for recommendations
+        3a. Return 404 if none found. This should not happen because algo should run first
+        3b. Return recommendations
+    """
+
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = get_hangout(hangout_id)
+        if not response["hangout"]:
+            raise InvalidHangout("Hangout does not exist.")
+
+        response = (
+            supabase.table("place_recommendations")
+            .select()
+            .eq("hangout_id", hangout_id)
+            .execute()
+        )
+
+        if response.data:
+            return {"status": 200, "recommendations": response.data}
+        return {"status": 404, "message": "No recommendations found for hangout."}
+
+    except InvalidHangout as e:
+        raise e
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")

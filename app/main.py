@@ -12,6 +12,7 @@ from app.custom_errors import (
     InvalidNotificationMessage,
 )
 from app.custom_types import InviteeStatus
+from app.algo import findRecommendations
 
 config = dotenv_values(".env")
 app = FastAPI(debug=True)
@@ -88,6 +89,10 @@ class VoteRequest(BaseModel):
     user_id: str
 
 
+class AlgoRequest(BaseModel):
+    hangout_id: str
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -95,6 +100,9 @@ async def root():
 
 @app.post("/send-friend-request")
 async def process_send_friend_request(request: FriendRequest) -> dict:
+    user_A = (
+        request.user_A
+    )  # userA is the sender ( the person who sent the friend request )
     user_A = (
         request.user_A
     )  # userA is the sender ( the person who sent the friend request )
@@ -157,6 +165,8 @@ async def fetch_notifications(request: NotificationRequest) -> dict:
         return {"status": 500, "message": str(e)}
 
 
+
+
 @app.post("/update-notification")
 async def change_notification(request: UpdateNotificationRequest) -> dict:
     notification_id = request.notification_id
@@ -216,6 +226,8 @@ async def process_friends_autocomplete(
         return {"status": 400, "message": str(e)}
     except ValueError as e:
         return {"status": 400, "message": str(e)}
+
+
 
 
 @app.post("/get-hangouts")
@@ -318,6 +330,35 @@ async def process_vote(request: VoteRequest) -> dict:
         return {"status": 400, "message": str(e)}
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+# this is a test endpoint. It will not be called by the front end
+@app.post("/algo-test")
+async def process_algo_test(request: AlgoRequest) -> dict:
+    hangout_id = request.hangout_id
+
+    try:
+        findRecommendations(hangout_id)
+        return True
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.get("/get-recommendations")
+async def process_get_recommendations(hangout_id: str) -> dict:
+    try:
+        response = da.get_recommendations(hangout_id)
+        return response
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
     except ValueError as e:

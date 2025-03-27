@@ -20,3 +20,7 @@ class InvalidNotificationMessage(Exception):
 
 class InvalidNotificationId(Exception):
     """Notification Id cannot be null"""
+
+
+class ExternalAPIError(Exception):
+    """Use this class for all external API errors"""
