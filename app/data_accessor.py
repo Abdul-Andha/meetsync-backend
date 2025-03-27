@@ -9,7 +9,7 @@ from app.custom_errors import (
     InvalidUser,
     UnexpectedError,
     InvalidNotificationMessage,
-    InvalidNotificationId
+    InvalidNotificationId,
 )
 from app.custom_types import FriendStatus, HangoutStatus, InviteeStatus
 from app.supabase_client import get_supabase_client
@@ -21,7 +21,7 @@ config = dotenv_values(".env")
 def check_for_friendship(user_A: str, user_B: str):
     """
     A helper function to retrive a row in the friends table.
-    
+
     NOTE: This function assumes that user_A < user_B.
 
     So make sure you do this check before passing in the values:
@@ -81,7 +81,7 @@ def send_friend_request(user_A: str, user_B: str) -> dict:
                 "user_A": primary,
                 "user_B": secondary,
                 "status": FriendStatus.PENDING,
-                "sender": user_A
+                "sender": user_A,
             }
             response = supabase.table("friends").insert(data).execute()
             if response.data[0]["id"]:
@@ -102,7 +102,7 @@ def remove_friend(friendship_id: str):
     """
     1. Removing a friend request by deleting the row from the `friends` table
     2. If no rows were updated, we return an error response.
-    3. If friendship_id is falsy, we raise an InvalidFriendship error. 
+    3. If friendship_id is falsy, we raise an InvalidFriendship error.
     """
 
     if friendship_id is None or friendship_id == "":
@@ -118,16 +118,11 @@ def remove_friend(friendship_id: str):
         if len(check_response.data) == 0:
             return {"error": 500, "message": "Friendship does not exist"}
 
-        response = (
-            supabase.table("friends")
-            .delete()
-            .eq("id", friendship_id)
-            .execute()
-        )
+        response = supabase.table("friends").delete().eq("id", friendship_id).execute()
 
-        if(response.data[0]["id"] == friendship_id):
+        if response.data[0]["id"] == friendship_id:
             return {"status": 200, "message": "Succesfully removed the friendship."}
-    
+
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
@@ -159,43 +154,49 @@ def get_notifications(user_id: str):
         )
 
         notifications = response.data if response.data else []
-        
-        for notif in notifications:
-            notif['users'] = get_user_info(notif['sender']) if notif['sender'] else {'username': "Unknown", 'profile_img': None}
-        
 
-        return {"status": 200, "notifications": notifications} 
+        for notif in notifications:
+            notif["users"] = (
+                get_user_info(notif["sender"])
+                if notif["sender"]
+                else {"username": "Unknown", "profile_img": None}
+            )
+
+        return {"status": 200, "notifications": notifications}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
-    
+
+
 def get_user_info(user_id: str) -> dict:
-    '''
+    """
     Retrieves username and profile_img for a given user
 
     1. Raise an error if user_id is null / falsey
     2. Query supabase for user with user_id, to retrieve username and profile_img
-    3. Return response.data if not falsey, else return default dictionary 
-    '''
+    3. Return response.data if not falsey, else return default dictionary
+    """
 
     if not user_id:
         raise InvalidUser("User ID cannot be null")
-    
+
     supabase: Client = get_supabase_client()
     try:
         response = (
-            supabase
-            .from_("users")
+            supabase.from_("users")
             .select("username, profile_img")
-            .eq("auth_id", user_id) 
-            .single() 
+            .eq("auth_id", user_id)
+            .single()
             .execute()
         )
 
-        return response.data if response.data else {'username': "Unknown", 'profile_img': None}
+        return (
+            response.data
+            if response.data
+            else {"username": "Unknown", "profile_img": None}
+        )
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
-
 
 
 def update_notification(notification_id: str, message: str) -> dict:
@@ -210,20 +211,26 @@ def update_notification(notification_id: str, message: str) -> dict:
     if not notification_id:
         raise InvalidNotificationId("Notification ID cannot be null")
     if not message:
-        raise InvalidNotificationMessage('Notification message cannot be null')
-    
+        raise InvalidNotificationMessage("Notification message cannot be null")
 
     supabase: Client = get_supabase_client()
 
     try:
         response = (
             supabase.table("notifications")
-            .update({'message':message, "type": "general"})
+            .update({"message": message, "type": "general"})
             .eq("id", notification_id)
             .execute()
         )
 
-        return { "status": 200, "message": "Notification updated successfully" } if response.data else {"status": 500, "message": "Something went wrong with updating notification"}
+        return (
+            {"status": 200, "message": "Notification updated successfully"}
+            if response.data
+            else {
+                "status": 500,
+                "message": "Something went wrong with updating notification",
+            }
+        )
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
@@ -476,7 +483,7 @@ def respond_to_invite(hangout_id: str, user_id: str, status: InviteeStatus) -> d
             .eq("user_id", user_id)
             .execute()
         )
-        
+
         if response.data:
             check_for_pending(hangout_id)
             return {"status": 200, "message": "Succesfully updated the invite."}
@@ -513,7 +520,7 @@ def check_for_pending(hangout_id: str):
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
-        
+
 def get_hangouts(user_id: str):
     """
     Retrieve all hangouts for a given user.
@@ -525,8 +532,7 @@ def get_hangouts(user_id: str):
 
     if not user_id:
         raise InvalidUser("User ID cannot be null")
-    
-    
+
     supabase: Client = get_supabase_client()
 
     try:
@@ -544,13 +550,13 @@ def get_hangouts(user_id: str):
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
-        
+
 
 def accept_friendship(friendship_id: str):
     """
     1. Accepting a friend request by changing status from pending to accepted.
     2. If no rows were updated, we return an error response.
-    3. If friendship_id is falsy, we raise an InvalidFriendship error. 
+    3. If friendship_id is falsy, we raise an InvalidFriendship error.
     4. If users are already friends, we return an error response.
     """
 
@@ -566,8 +572,8 @@ def accept_friendship(friendship_id: str):
 
         if len(check_response.data) == 0:
             return {"error": 500, "message": "Friendship does not exist"}
-        
-        if(check_response.data[0]["status"] == FriendStatus.ACCEPTED):
+
+        if check_response.data[0]["status"] == FriendStatus.ACCEPTED:
             return {"error": 500, "message": "Users are already friends"}
 
         response = (
@@ -578,7 +584,167 @@ def accept_friendship(friendship_id: str):
         )
 
         return {"status": 200, "message": "Succesfully accepted the friend request."}
-    
+
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
+
+def create_poll(hangout_id: str, options: list[str]):
+    """
+    Creates a poll for a hangout 
+
+    1. If there was more than 5 errors passed in, we raise a ValueError
+    2. If hangout_id is falsey we raise a value error 
+    3. Check if a poll is already created, if so, we return an error
+    4. If all is good, we return a 200
+    """
+
+    unique_options = set(options)
+    if len(unique_options) > 5:
+        raise ValueError("Options exceeds limit. You can only pass in 5 options")
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        data = [
+        {"hangout_id": hangout_id, "option_time": option} for option in unique_options
+        ]
+        check_response = (
+            supabase.table("meetup_options")
+            .select("hangout_id")
+            .eq("hangout_id", hangout_id)
+            .execute()
+        )
+        if len(check_response.data) > 0:
+            return {
+                "status": 500,
+                "message": "Unable to create poll. A poll for the hangout already exist.",
+            }
+
+        response = supabase.table("meetup_options").insert(data).execute()
+        if response.data:
+            return {
+                "status": 200,
+                "message": "Succesfully created poll and added your options.",
+            }
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+# change option id and vote id to uuids
+def vote(hangout_id: int, option_id: int, user_id: str):
+    """
+    Submits a vote for a hangout
+
+    1. If hangout_id, option_id or user_id is falsey we raise an error
+    2. We then get the vote options and make sure the option the user is trying to vote for is an actual selection from the poll
+        2a. If is not, we raise an error
+        2b. Otherwise we submit the vote
+    3. After we submit the vote we get all the participants in an hangout, and all the votes and check if theyre equal
+        3a. If they are equal that means everyone has voted. 
+        3b. We know this is true because `user_id` and `hangout_id` are a composite key in `meetup_votes` table so there will never be duplicate votes from the same user
+    4. If everyone vote, we call a helper function to get the winner and update the hangouts table. The col we are updating is `scheduled_time`
+
+    
+    """
+
+    if not hangout_id:
+        raise InvalidHangout("Hangout ID can not null")
+
+    if not user_id:
+        raise InvalidUser("User ID cannot be null")
+
+    if not option_id:
+        raise ValueError("Option cannot be null")
+
+    supabase: Client = get_supabase_client()
+    
+    try:
+    
+        data = {"user_id": user_id, "option_id": option_id, "hangout_id": hangout_id}
+
+        vote_options = (
+            supabase.table("meetup_options")
+            .select("id")
+            .eq("hangout_id", hangout_id)
+            .execute()
+        )
+
+        flattened_options = [option["id"] for option in vote_options.data]
+
+        if option_id not in flattened_options:
+            return {
+                "status": 500,
+                "message": "Invalid voting opion",
+            }
+
+        vote_response = (
+            supabase.table("meetup_votes")
+            .upsert(data, on_conflict="user_id,hangout_id")
+            .execute()
+        )
+
+        if vote_response.data:
+
+            hangout_response = (
+            supabase.table("hangouts")
+            .select("invitee_ids")
+            .eq("id", hangout_id)
+            .execute()
+            )
+
+            invitees = hangout_response.data[0]["invitee_ids"]
+
+            user_votes = (
+                supabase.table("meetup_votes")
+                .select("user_id")
+                .eq("hangout_id", hangout_id)
+                .execute()
+            )
+
+            flattend_user_votes = [user["user_id"] for user in user_votes.data]
+
+            if len(flattend_user_votes) == len(invitees):
+               update_hangout_response = set_scheduled_time(supabase,hangout_id)
+               if not update_hangout_response:
+                   return {
+                       "status": 200,
+                       "message": "Successfully added vote. We tried to conclude the vote since you the final memeber to vote but there was an error while updating the hangout"
+                   }
+
+            print("not calling")
+            return {
+                "status": 200,
+                "message": "Succesfully added your vote",
+            }
+        
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
+def set_scheduled_time(supabase: Client, hangout_id: int):
+    """
+    A helper function to set the winning time for a vote
+
+    1. Get the winner view sql query : https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/sql/04256748 
+    2. Update hangouts table with the value returned from the query
+
+    """
+    winning_time_repsponse = supabase.rpc(
+        "get_vote_winner",
+        {
+            "input_hangout_id": hangout_id,
+        },
+    ).execute()
+
+    winning_time = winning_time_repsponse.data[0]["option_time"]
+    updated_hangout_response = (
+        supabase.table("hangouts")
+        .update({"scheduled_time": winning_time})
+        .eq("id", hangout_id)
+        .execute()
+    )
+
+    return "data" in updated_hangout_response

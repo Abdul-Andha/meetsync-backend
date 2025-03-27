@@ -13,8 +13,10 @@ class InvalidFriendship(Exception):
 class UnexpectedError(Exception):
     """Use this class for all unexpected exeptions"""
 
+
 class InvalidNotificationMessage(Exception):
     """Notification message cannot be null"""
+
 
 class InvalidNotificationId(Exception):
     """Notification Id cannot be null"""
