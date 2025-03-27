@@ -120,10 +120,8 @@ def getPlaces(polygon, center, radius):
     try:
         response = requests.post(URL, json=body, headers=headers)
         data = response.json()
-        if data.status_code != 200:
-            raise ExternalAPIError(
-                f"GooglePlacesAPI Error {data['error_code']}: {data['error_message']}"
-            )
+        if data.get("places") == None:
+            raise ExternalAPIError(f"GooglePlacesAPI Error")
         places = data["places"]
         filteredPlaces = []
         for place in places:
@@ -209,7 +207,7 @@ def getAlgoInputs(hangout_id: str):
     return startAddresses, travelTimes, transportModes
 
 
-def getRecommendations(hangout_id: int):
+def findRecommendations(hangout_id: int):
     """
     Returns a list of recommended places for the hangout
 
@@ -225,7 +223,7 @@ def getRecommendations(hangout_id: int):
     7. Get enclosing circle of overlap
     8. Get places within circle and filter out places not in overlap
         a. Raise error if no places found
-    9. Return list of filtered places
+    9. Save filtered places in supabase place_recommendations table
     """
     if hangout_id is None or hangout_id == "":
         raise InvalidHangout("Hangout ID can not null")
@@ -253,10 +251,11 @@ def getRecommendations(hangout_id: int):
 
         center, radius = getEnclosingCircle(overlap)
         filteredPlaces = getPlaces(overlap, center, radius)
+
         if len(filteredPlaces) == 0:
             raise ValueError("No places found within overlap")
 
-        return {"status": 200, "places": filteredPlaces}
+        da.push_recommendations(hangout_id, filteredPlaces)
 
     except Exception as e:
         raise UnexpectedError(e)
