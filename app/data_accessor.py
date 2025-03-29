@@ -902,3 +902,43 @@ def get_recommendations(hangout_id: str):
         raise e
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
+    
+
+def fetch_hangouts(uuid: str, name: str = "") -> dict:
+    """
+    1. Checks if uuid is empty, raises InvalidUser if so.
+    2. Checks if user exists in users table.
+    3. Calls the `fetch_user_hangouts` RPC with uuid + optional name query.
+    4. Always returns `response.data`.
+    Stored procedure link: https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/api?rpc=fetch_user_hangouts
+    """
+    supabase: Client = get_supabase_client()
+
+    if uuid is None:
+        raise InvalidUser("User ID cannot be null")
+
+    try:
+        user_exist = (
+            supabase.table("users")
+            .select("auth_id")
+            .eq("auth_id", uuid)
+            .maybe_single()
+            .execute()
+        )
+
+        if not user_exist.data:
+            return {"status": 404, "message": "User does not exist."}
+
+        response = supabase.rpc(
+            "fetch_user_hangouts",
+            {
+                "currentuser": uuid,
+                "name": name or "",
+            },
+        ).execute()
+
+        return {"status": 200, "hangouts": response.data}
+
+    except UnexpectedError as e:
+        raise e
+

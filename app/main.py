@@ -92,6 +92,10 @@ class VoteRequest(BaseModel):
 class AlgoRequest(BaseModel):
     hangout_id: str
 
+class FetchHangoutsRequest(BaseModel):
+    uuid: str
+    name: str = ""  # Optional search query (can be empty)
+
 
 @app.get("/")
 async def root():
@@ -358,6 +362,21 @@ async def process_get_recommendations(hangout_id: str) -> dict:
         response = da.get_recommendations(hangout_id)
         return response
     except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/fetch-hangouts")
+async def process_fetch_hangouts(request: FetchHangoutsRequest) -> dict:
+    uuid = request.uuid
+    name = request.name
+    try:
+        response = da.fetch_hangouts(uuid, name)
+        return response
+    except InvalidUser as e:
         return {"status": 400, "message": str(e)}
     except ValueError as e:
         return {"status": 400, "message": str(e)}
