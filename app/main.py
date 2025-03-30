@@ -97,6 +97,10 @@ class FetchHangoutsRequest(BaseModel):
     name: str = ""  # Optional search query (can be empty)
 
 
+class CancelHangoutRequest(BaseModel):
+    hangout_id: int
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -270,6 +274,18 @@ async def process_new_hangout(request: HangoutRequest) -> dict:
     except Exception as e:
         return {"status": 500, "message": str(e)}
 
+
+@app.post("/cancel-hangout")
+async def process_cancel_hangout(request: CancelHangoutRequest) -> dict:
+    hangout_id = request.hangout_id
+    try:
+        response = da.cancel_hangout(hangout_id)
+        return response
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+        
 
 @app.post("/accept-invite")
 async def process_accept_invite(request: HangoutResponseRequest) -> dict:
