@@ -942,3 +942,28 @@ def fetch_hangouts(uuid: str, name: str = "") -> dict:
     except UnexpectedError as e:
         raise e
 
+
+def cancel_hangout(hangout_id: int):
+    """
+    A helper function to delete a hangout.
+
+    1. If hangout_id is falsy, we raise an InvalidHangout error
+    2. Otherwise, we will delete the row from the hangouts table
+
+    As long as all foreign keys are set to cascade on delete, all related rows referencing the `hangout_id` will also be automatically removed.
+    """
+
+    if hangout_id is None:
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = supabase.table("hangouts").delete().eq("id", hangout_id).execute()
+
+        if len(response.data) == 0:
+            return {"status": 500, "message": "Unable to delete hangout. Make sure you are passing in a vaid hangout id"}
+        
+        return {"status": 200, "message": "Succesfully deleted the hangout."}
+    except UnexpectedError as e:
+        raise e
