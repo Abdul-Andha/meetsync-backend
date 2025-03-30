@@ -371,14 +371,11 @@ def new_hangout(
     creator_id: str,
     invitee_ids: list[str],
     title: str,
-    date_range_start: str,
-    date_range_end: str,
 ) -> dict:
     """
     1. Raise errors if:
         a. creator_username or creator_id or title are falsey.
         b. invitee_ids is empty.
-        a. date_range_end <= date_range_start.
     2. Create new hangout object in the hangouts table.
     3. Invite people to the hangout.
     """
@@ -394,19 +391,12 @@ def new_hangout(
     if title == "":
         raise ValueError("Title can not be empty")
 
-    start = datetime.fromisoformat(date_range_start)
-    end = datetime.fromisoformat(date_range_end)
-    if end <= start:
-        raise ValueError("End date can not be before start date")
-
     supabase: Client = get_supabase_client()
 
     data = {
         "creator_id": creator_id,
         "invitee_ids": invitee_ids,
         "title": title,
-        "date_range_start": date_range_start,
-        "date_range_end": date_range_end,
         "status": HangoutStatus.INVITES_SENT,
     }
 

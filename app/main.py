@@ -65,8 +65,6 @@ class HangoutRequest(BaseModel):
     creator_id: str
     invitee_ids: list[str]
     title: str
-    date_range_start: str
-    date_range_end: str
 
 
 class HangoutResponseRequest(BaseModel):
@@ -252,8 +250,6 @@ async def process_new_hangout(request: HangoutRequest) -> dict:
     creator_id = request.creator_id
     invitee_ids = request.invitee_ids
     title = request.title
-    date_range_start = request.date_range_start
-    date_range_end = request.date_range_end
 
     try:
         response = da.new_hangout(
@@ -261,8 +257,6 @@ async def process_new_hangout(request: HangoutRequest) -> dict:
             creator_id,
             invitee_ids,
             title,
-            date_range_start,
-            date_range_end,
         )
         return response
     except InvalidUser as e:
