@@ -348,7 +348,7 @@ async def process_create_poll(request: CreatePollRequest) -> dict:
     try:
         response = da.create_poll(hangout_id, options)
         return response
-    except InvalidUser as e:
+    except ValueError as e:
         return {"status": 400, "message": str(e)}
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
@@ -362,8 +362,6 @@ async def access_poll_options(request: GetPoll) -> dict:
     try:
         response = da.get_poll(hangout_id)
         return response
-    except InvalidUser as e:
-        return {"status": 400, "message": str(e)}
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
     except Exception as e:

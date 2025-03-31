@@ -641,12 +641,12 @@ def get_poll(hangout_id: str):
     try:
         response = (
             supabase.table("meetup_options")
-            .select("start_time, end_time, selected_day")
+            .select("id, start_time, end_time, selected_day")
             .eq("hangout_id", hangout_id)
             .execute()
         )
         if response.data:
-            data = [option['selected_day'] + ',' + option['start_time'] + ',' + option['end_time'] for option in response.data]
+            data = [{'id': option['id'], 'option': option['selected_day'] + ',' + option['start_time'] + ',' + option['end_time']} for option in response.data]
             return {"status": 200, "options": data}
         return {"status": 200, "options": []}
 
