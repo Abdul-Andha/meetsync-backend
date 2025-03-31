@@ -95,6 +95,9 @@ class FetchHangoutsRequest(BaseModel):
     uuid: str
     name: str = ""  # Optional search query (can be empty)
 
+class GetHangoutParticipantsRequest(BaseModel):
+    hangout_id: str
+
 
 class CancelHangoutRequest(BaseModel):
     hangout_id: int
@@ -389,3 +392,15 @@ async def process_fetch_hangouts(request: FetchHangoutsRequest) -> dict:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
+
+@app.post("/get-hangout-participants")
+async def process_get_hangout_participants(request: GetHangoutParticipantsRequest) -> dict:
+    try:
+        response = da.get_hangout_participants(request.hangout_id)
+        return response
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
