@@ -765,10 +765,12 @@ def set_scheduled_time(supabase: Client, hangout_id: int):
         },
     ).execute()
 
-    winning_time = winning_time_repsponse.data[0]["option_time"]
+    winning_date = winning_time_repsponse.data[0]["selected_day"]
+    winning_start_time = winning_time_repsponse.data[0]["start_time"]
+    winning_end_time = winning_time_repsponse.data[0]["end_time"]
     updated_hangout_response = (
         supabase.table("hangouts")
-        .update({"scheduled_date": winning_time})
+        .update({"scheduled_date": winning_date, "scheduled_start_time": winning_start_time,  "scheduled_end_time": winning_end_time})
         .eq("id", hangout_id)
         .execute()
     )
