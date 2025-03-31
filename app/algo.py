@@ -108,7 +108,7 @@ def getPlaces(polygon, center, radius):
     }
     body = {
         "includedTypes": ["restaurant"],
-        "maxResultCount": 10,
+        "maxResultCount": 5,
         "locationRestriction": {
             "circle": {
                 "center": {"latitude": center.y, "longitude": center.x},
