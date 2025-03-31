@@ -598,9 +598,12 @@ def create_poll(hangout_id: str, options: list[str]):
     supabase: Client = get_supabase_client()
 
     try:
-        data = [
-        {"hangout_id": hangout_id, "option_time": option} for option in unique_options
-        ]
+        data = []
+        for option in unique_options:
+            day, start_time, end_time = option.split(',')
+            insertData = {"hangout_id": hangout_id, "selected_day": day, "start_time": start_time, "end_time": end_time}
+            data.append(insertData)
+
         check_response = (
             supabase.table("meetup_options")
             .select("hangout_id")
