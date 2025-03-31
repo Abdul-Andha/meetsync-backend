@@ -80,6 +80,8 @@ class CreatePollRequest(BaseModel):
     hangout_id: int
     options: list[str]
 
+class GetPoll(BaseModel):
+    hangout_id: str
 
 class VoteRequest(BaseModel):
     hangout_id: int
@@ -352,7 +354,20 @@ async def process_create_poll(request: CreatePollRequest) -> dict:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+    
+@app.post("/get-poll")
+async def access_poll_options(request: GetPoll) -> dict:
+    hangout_id = request.hangout_id
 
+    try:
+        response = da.get_poll(hangout_id)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
 
 @app.post("/vote")
 async def process_vote(request: VoteRequest) -> dict:

@@ -625,6 +625,35 @@ def create_poll(hangout_id: str, options: list[str]):
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
+def get_poll(hangout_id: str):
+    '''
+    Gets all the poll options for a hangout
+
+    1. If hangout_id is falsey we raise a value error 
+    2. Query meetup_options to get the options for a hangout
+    3. If all is good, we return a 200 with the options
+    '''
+
+    if hangout_id is None or hangout_id == "":
+        raise InvalidHangout("Hangout ID can not null")
+
+    supabase: Client = get_supabase_client()
+    try:
+        response = (
+            supabase.table("meetup_options")
+            .select("start_time, end_time, selected_day")
+            .eq("hangout_id", hangout_id)
+            .execute()
+        )
+        if response.data:
+            data = [option['selected_day'] + ',' + option['start_time'] + ',' + option['end_time'] for option in response.data]
+            return {"status": 200, "options": data}
+        return {"status": 200, "options": []}
+
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+
 
 def vote(hangout_id: int, option_id: str, user_id: str):
     """
