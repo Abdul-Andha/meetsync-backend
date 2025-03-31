@@ -655,7 +655,7 @@ def get_poll(hangout_id: str):
 
 
 
-def vote(hangout_id: int, option_id: str, user_id: str):
+def vote(hangout_id: int, option_ids: list[str], user_id: str):
     """
     Submits a vote for a hangout
 
@@ -675,8 +675,8 @@ def vote(hangout_id: int, option_id: str, user_id: str):
     if not user_id:
         raise InvalidUser("User ID cannot be null")
 
-    if not option_id:
-        raise ValueError("Option cannot be null")
+    if not option_ids or len(option_ids) == 0:
+        raise ValueError("Options cannot be empty")
 
     supabase: Client = get_supabase_client()
     
@@ -690,7 +690,7 @@ def vote(hangout_id: int, option_id: str, user_id: str):
                 "message": "No longer accepting votes for hangout. Poll is concluded.",
             }
     
-        data = {"user_id": user_id, "option_id": option_id, "hangout_id": hangout_id}
+        data = [{"user_id": user_id, "option_id": option_id, "hangout_id": hangout_id} for option_id in option_ids]
 
         vote_options = (
             supabase.table("meetup_options")
@@ -700,16 +700,16 @@ def vote(hangout_id: int, option_id: str, user_id: str):
         )
 
         flattened_options = [option["id"] for option in vote_options.data]
-
-        if option_id not in flattened_options:
-            return {
-                "status": 500,
-                "message": "Invalid voting option",
-            }
+        for option_id in flattened_options:
+            if option_id not in flattened_options:
+                return {
+                    "status": 500,
+                    "message": "Invalid voting option: " + option_id,
+                }
 
         vote_response = (
             supabase.table("meetup_votes")
-            .upsert(data, on_conflict="user_id,option_id") # no-op (nothing is done) if the there is a conflic
+            .upsert(data) 
             .execute()
         )
 
@@ -768,7 +768,7 @@ def set_scheduled_time(supabase: Client, hangout_id: int):
     winning_time = winning_time_repsponse.data[0]["option_time"]
     updated_hangout_response = (
         supabase.table("hangouts")
-        .update({"scheduled_time": winning_time})
+        .update({"scheduled_date": winning_time})
         .eq("id", hangout_id)
         .execute()
     )

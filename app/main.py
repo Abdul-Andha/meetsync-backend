@@ -85,7 +85,7 @@ class GetPoll(BaseModel):
 
 class VoteRequest(BaseModel):
     hangout_id: int
-    option_id: str
+    option_ids: list[str]
     user_id: str
 
 
@@ -370,11 +370,11 @@ async def access_poll_options(request: GetPoll) -> dict:
 @app.post("/vote")
 async def process_vote(request: VoteRequest) -> dict:
     hangout_id = request.hangout_id
-    option_id = request.option_id
+    option_ids = request.option_ids
     user_id = request.user_id
 
     try:
-        response = da.vote(hangout_id, option_id, user_id)
+        response = da.vote(hangout_id, option_ids, user_id)
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
