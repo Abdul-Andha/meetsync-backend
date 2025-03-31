@@ -98,6 +98,9 @@ class FetchHangoutsRequest(BaseModel):
 class CancelHangoutRequest(BaseModel):
     hangout_id: int
 
+class HangoutInfoRequest(BaseModel):
+    hangout_id: int
+
 
 @app.get("/")
 async def root():
@@ -239,6 +242,28 @@ async def get_hangouts_route(request: GetHangoutsRequest) -> dict:
     user_id = request.user_id
     try:
         response = da.get_user_hangouts(user_id)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except UnexpectedError as e:
+        return {"status": 500, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+    
+@app.post("/get-hangout-info")
+async def get_hangout_info_route(request: HangoutInfoRequest) -> dict:
+    hangout_id = request.hangout_id
+    try:
+        response = da.get_hangout(hangout_id)
+        if response['hangout']:
+            data = {
+                'status': response['status'],
+                'hangout_info': {
+                    'creator_id': response['hangout']['creator_id'],
+                    'title': response['hangout']['title']
+                }
+            }
+            return data
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
