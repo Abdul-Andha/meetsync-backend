@@ -389,3 +389,15 @@ async def process_fetch_hangouts(request: FetchHangoutsRequest) -> dict:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
+
+@app.get("/get-hangout-participants")
+async def process_get_hangout_participants(hangout_id: str) -> dict:
+    try:
+        response = da.get_hangout_participants(hangout_id)
+        return response
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+

@@ -806,7 +806,7 @@ def get_hangout_participants(hangout_id: str):
     try:
         response = (
             supabase.table("hangout_participants")
-            .select()
+            .select("*, user:users(username)")
             .eq("hangout_id", hangout_id)
             .eq("status", "accepted")
             .execute()
