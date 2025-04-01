@@ -11,7 +11,7 @@ from app.custom_errors import (
     InvalidNotificationMessage,
     InvalidNotificationId,
 )
-from app.custom_types import FriendStatus, HangoutStatus, InviteeStatus
+from app.custom_types import FriendStatus, HangoutStatus, InviteeStatus, NotificationType
 from app.supabase_client import get_supabase_client
 from app.utils import send_notification_bulk
 
@@ -586,7 +586,9 @@ def create_poll(hangout_id: str, options: list[str]):
     1. If there was more than 5 options passed in, we raise a ValueError
     2. If hangout_id is falsey we raise a value error 
     3. Check if a poll is already created, if so, we return an error
-    4. If all is good, we return a 200
+    4. Insert all poll options for a hangout
+    5. Get hangout information and send notification to all invitees
+    6. If all is good, we return a 200
     """
 
     unique_options = set(options)
@@ -617,7 +619,27 @@ def create_poll(hangout_id: str, options: list[str]):
             }
 
         response = supabase.table("meetup_options").insert(data).execute()
+
         if response.data:
+            hangout_response = get_hangout(hangout_id)
+            if hangout_response['status'] != 200:
+                return {
+                    "status": 200,
+                    "message": "Succesfully created poll but unable to retrieve hangout information and send notifications.",
+                } 
+            hangout_info = hangout_response['hangout']
+            notifResponse = send_notification_bulk(
+                hangout_info["creator_id"],
+                hangout_info["invitee_ids"],
+                f'Availability phase initiated for {hangout_info["title"]}',
+                NotificationType.SELECT_AVAILABILITY,
+                hangout_id,
+            )
+            if notifResponse["status"] != 200:
+                return {
+                    "status": 200,
+                    "message": "Succesfully created poll but unable to send notifications to all invitees.",
+                }
             return {
                 "status": 200,
                 "message": "Succesfully created poll and added your options.",
@@ -715,14 +737,11 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
 
         if vote_response.data:
 
-            hangout_response = (
-            supabase.table("hangouts")
-            .select("invitee_ids")
-            .eq("id", hangout_id)
-            .execute()
-            )
+            hangout_response = get_hangout(hangout_id)
 
-            invitees = hangout_response.data[0]["invitee_ids"]
+            invitees = hangout_response['hangout']["invitee_ids"]
+            creator_id = hangout_response['hangout']["creator_id"]
+            title = hangout_response['hangout']["title"]
 
             user_votes = (
                 supabase.table("meetup_votes")
@@ -735,7 +754,7 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
             unique_users = set(flattend_user_votes)
 
             if len(unique_users) == len(invitees): # change this clause
-               update_hangout_response = set_scheduled_time(supabase,hangout_id)
+               update_hangout_response = set_scheduled_time(supabase,hangout_id, invitees, creator_id, title)
                if not update_hangout_response:
                    return {
                        "status": 500,
@@ -751,7 +770,7 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
 
-def set_scheduled_time(supabase: Client, hangout_id: int):
+def set_scheduled_time(supabase: Client, hangout_id: int, invitees: list[str], creator_id: str, title:str):
     """
     A helper function to set the winning time for a vote
 
@@ -770,9 +789,17 @@ def set_scheduled_time(supabase: Client, hangout_id: int):
     winning_end_time = winning_time_repsponse.data[0]["end_time"]
     updated_hangout_response = (
         supabase.table("hangouts")
-        .update({"scheduled_date": winning_date, "scheduled_start_time": winning_start_time,  "scheduled_end_time": winning_end_time})
+        .update({"scheduled_date": winning_date, "scheduled_start_time": winning_start_time,  "scheduled_end_time": winning_end_time, "status": HangoutStatus.CONFIRM_TIME})
         .eq("id", hangout_id)
         .execute()
+    )
+
+    notifResponse = send_notification_bulk(
+        creator_id,
+        invitees,
+        f"Meetup time has been chosen and set for {title}",
+        NotificationType.CONFIRM_TIME,
+        hangout_id,
     )
 
     return len(updated_hangout_response.data) == 1 # len is 1 if the update was succesful
