@@ -71,17 +71,12 @@ class HangoutResponseRequest(BaseModel):
     hangout_id: str
     user_id: str
 
-
 class GetHangoutsRequest(BaseModel):
     user_id: str
-
 
 class CreatePollRequest(BaseModel):
     hangout_id: int
     options: list[str]
-
-class GetPoll(BaseModel):
-    hangout_id: str
 
 class VoteRequest(BaseModel):
     hangout_id: int
@@ -98,9 +93,6 @@ class FetchHangoutsRequest(BaseModel):
 
 
 class CancelHangoutRequest(BaseModel):
-    hangout_id: int
-
-class HangoutInfoRequest(BaseModel):
     hangout_id: int
 
 
@@ -252,9 +244,9 @@ async def get_hangouts_route(request: GetHangoutsRequest) -> dict:
     except Exception as e:
         return {"status": 500, "message": str(e)}
     
-@app.post("/get-hangout-info")
-async def get_hangout_info_route(request: HangoutInfoRequest) -> dict:
-    hangout_id = request.hangout_id
+@app.get("/get-hangout-info")
+async def get_hangout_info_route(hangout_id: str) -> dict:
+
     try:
         response = da.get_hangout(hangout_id)
         if response['hangout']:
@@ -355,9 +347,8 @@ async def process_create_poll(request: CreatePollRequest) -> dict:
     except Exception as e:
         return {"status": 500, "message": str(e)}
     
-@app.post("/get-poll")
-async def access_poll_options(request: GetPoll) -> dict:
-    hangout_id = request.hangout_id
+@app.get("/get-poll")
+async def access_poll_options(hangout_id: str) -> dict:
 
     try:
         response = da.get_poll(hangout_id)
