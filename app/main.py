@@ -87,6 +87,7 @@ class VoteRequest(BaseModel):
 class AlgoRequest(BaseModel):
     hangout_id: str
 
+
 class FetchHangoutsRequest(BaseModel):
     uuid: str
     name: str = ""  # Optional search query (can be empty)
@@ -106,7 +107,7 @@ async def process_send_friend_request(request: FriendRequest) -> dict:
     user_A = (
         request.user_A
     )  # userA is the sender ( the person who sent the friend request )
-    
+
     user_B = request.user_B
     try:
         response = da.send_friend_request(user_A, user_B)
@@ -164,8 +165,6 @@ async def fetch_notifications(request: NotificationRequest) -> dict:
         return {"status": 500, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
-
-
 
 
 @app.post("/update-notification")
@@ -227,8 +226,6 @@ async def process_friends_autocomplete(
         return {"status": 400, "message": str(e)}
     except ValueError as e:
         return {"status": 400, "message": str(e)}
-
-
 
 
 @app.post("/get-hangouts")
@@ -298,7 +295,7 @@ async def process_cancel_hangout(request: CancelHangoutRequest) -> dict:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
-        
+
 
 @app.post("/accept-invite")
 async def process_accept_invite(request: HangoutResponseRequest) -> dict:
@@ -386,7 +383,7 @@ async def process_algo_test(request: AlgoRequest) -> dict:
 
     try:
         findRecommendations(hangout_id)
-        return True
+        return {"status": 200, "message": "Algo test completed successfully"}
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
     except ValueError as e:
@@ -421,3 +418,15 @@ async def process_fetch_hangouts(request: FetchHangoutsRequest) -> dict:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
+
+@app.get("/get-hangout-participants")
+async def process_get_hangout_participants(hangout_id: str) -> dict:
+    try:
+        response = da.get_hangout_participants(hangout_id)
+        return response
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+

@@ -434,6 +434,13 @@ def invite_users(
         }
         for invitee_id in invitee_ids
     ]
+    data.append(
+        {
+            "hangout_id": hangout_id,
+            "user_id": creator_id,
+            "status": InviteeStatus.ACCEPTED,
+        }
+    )
 
     try:
         response = supabase.table("hangout_participants").insert(data).execute()
@@ -581,10 +588,10 @@ def accept_friendship(friendship_id: str):
 
 def create_poll(hangout_id: str, options: list[str]):
     """
-    Creates a poll for a hangout 
+    Creates a poll for a hangout
 
     1. If there was more than 5 options passed in, we raise a ValueError
-    2. If hangout_id is falsey we raise a value error 
+    2. If hangout_id is falsey we raise a value error
     3. Check if a poll is already created, if so, we return an error
     4. Insert all poll options for a hangout
     5. Get hangout information and send notification to all invitees
@@ -686,7 +693,7 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
         2a. If is not, we raise an error
         2b. Otherwise we submit the vote
     3. After we submit the vote we get all the participants in an hangout, and all the votes and check if theyre equal
-        3a. If they are equal that means everyone has voted. 
+        3a. If they are equal that means everyone has voted.
         3b. We know this is true because `user_id` and `hangout_id` are a composite key in `meetup_votes` table so there will never be duplicate votes from the same user
     4. If everyone vote, we call a helper function to get the winner and update the hangouts table. The col we are updating is `scheduled_time`
     """
@@ -701,7 +708,7 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
         raise ValueError("Options cannot be empty")
 
     supabase: Client = get_supabase_client()
-    
+
     try:
 
         concluded = check_if_vote_is_concluded(supabase, hangout_id)
@@ -736,9 +743,9 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
         )
 
         if vote_response.data:
-
+          
             hangout_response = get_hangout(hangout_id)
-
+            
             invitees = hangout_response['hangout']["invitee_ids"]
             creator_id = hangout_response['hangout']["creator_id"]
             title = hangout_response['hangout']["title"]
@@ -760,12 +767,11 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
                        "status": 500,
                        "message": "Successfully added vote. We tried to conclude the vote since you are the final memeber to vote but there was an error while updating the hangout."
                    }
-
             return {
                 "status": 200,
                 "message": "Succesfully added your vote",
             }
-        
+
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
@@ -774,7 +780,7 @@ def set_scheduled_time(supabase: Client, hangout_id: int, invitees: list[str], c
     """
     A helper function to set the winning time for a vote
 
-    1. Get the winner view sql query : https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/sql/04256748 
+    1. Get the winner view sql query : https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/sql/04256748
     2. Update hangouts table with the value returned from the query
     """
     winning_time_repsponse = supabase.rpc(
@@ -804,20 +810,24 @@ def set_scheduled_time(supabase: Client, hangout_id: int, invitees: list[str], c
 
     return len(updated_hangout_response.data) == 1 # len is 1 if the update was succesful
 
-
 def check_if_vote_is_concluded(supabase: Client, hangout_id: int):
     """
     A helper function to check if a poll is not concluded
 
     Note: `scheduled_time` is either NULL or a datetimestamp
-    
+
     1. Fetches `scheduled_time` val from row.
     2. If `scheduled_time` is not null, return true. This means theres a date timestamp
     3. Otherwise return false, this means the value is None
     """
 
-    hangout = supabase.table("hangouts").select("scheduled_time").eq("id", hangout_id).execute()  
-    return hangout.data[0]["scheduled_time"] is not None 
+    hangout = (
+        supabase.table("hangouts")
+        .select("scheduled_time")
+        .eq("id", hangout_id)
+        .execute()
+    )
+    return hangout.data[0]["scheduled_time"] is not None
 
 
 def get_hangout(hangout_id: str):
@@ -867,7 +877,7 @@ def get_hangout_participants(hangout_id: str):
     try:
         response = (
             supabase.table("hangout_participants")
-            .select()
+            .select("*, user:users(username)")
             .eq("hangout_id", hangout_id)
             .eq("status", "accepted")
             .execute()
@@ -953,7 +963,7 @@ def get_recommendations(hangout_id: str):
         raise e
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
-    
+
 
 def fetch_hangouts(uuid: str, name: str = "") -> dict:
     """
@@ -1013,8 +1023,11 @@ def cancel_hangout(hangout_id: int):
         response = supabase.table("hangouts").delete().eq("id", hangout_id).execute()
 
         if len(response.data) == 0:
-            return {"status": 500, "message": "Unable to delete hangout. Make sure you are passing in a vaid hangout id"}
-        
+            return {
+                "status": 500,
+                "message": "Unable to delete hangout. Make sure you are passing in a vaid hangout id",
+            }
+
         return {"status": 200, "message": "Succesfully deleted the hangout."}
     except UnexpectedError as e:
         raise e
