@@ -71,19 +71,16 @@ class HangoutResponseRequest(BaseModel):
     hangout_id: str
     user_id: str
 
-
 class GetHangoutsRequest(BaseModel):
     user_id: str
-
 
 class CreatePollRequest(BaseModel):
     hangout_id: int
     options: list[str]
 
-
 class VoteRequest(BaseModel):
     hangout_id: int
-    option_id: str
+    option_ids: list[str]
     user_id: str
 
 
@@ -243,6 +240,28 @@ async def get_hangouts_route(request: GetHangoutsRequest) -> dict:
         return {"status": 500, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+    
+@app.get("/get-hangout-info")
+async def get_hangout_info_route(hangout_id: str) -> dict:
+
+    try:
+        response = da.get_hangout(hangout_id)
+        if response['hangout']:
+            data = {
+                'status': response['status'],
+                'hangout_info': {
+                    'creator_id': response['hangout']['creator_id'],
+                    'title': response['hangout']['title']
+                }
+            }
+            return data
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except UnexpectedError as e:
+        return {"status": 500, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
 
 
 @app.post("/new-hangout")
@@ -318,22 +337,32 @@ async def process_create_poll(request: CreatePollRequest) -> dict:
     try:
         response = da.create_poll(hangout_id, options)
         return response
-    except InvalidUser as e:
+    except ValueError as e:
         return {"status": 400, "message": str(e)}
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+    
+@app.get("/get-poll")
+async def access_poll_options(hangout_id: str) -> dict:
 
+    try:
+        response = da.get_poll(hangout_id)
+        return response
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
 
 @app.post("/vote")
 async def process_vote(request: VoteRequest) -> dict:
     hangout_id = request.hangout_id
-    option_id = request.option_id
+    option_ids = request.option_ids
     user_id = request.user_id
 
     try:
-        response = da.vote(hangout_id, option_id, user_id)
+        response = da.vote(hangout_id, option_ids, user_id)
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}
