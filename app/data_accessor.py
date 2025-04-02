@@ -803,7 +803,7 @@ def set_scheduled_time(supabase: Client, hangout_id: int, invitees: list[str], c
     notifResponse = send_notification_bulk(
         creator_id,
         invitees,
-        f"Meetup time has been chosen and set for {title}",
+        f"Meetup time has been chosen and set for {title} at {winning_start_time} on {winning_date}",
         NotificationType.CONFIRM_TIME,
         hangout_id,
     )
