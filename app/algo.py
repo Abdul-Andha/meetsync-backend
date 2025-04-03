@@ -1,3 +1,4 @@
+import os
 import requests
 from shapely.geometry import Polygon, MultiPolygon, Point
 from dotenv import dotenv_values
@@ -23,8 +24,12 @@ def getIsochrones(startPoints, times, transportModes):
 
     URL = "https://api.traveltimeapp.com/v4/time-map/fast"
     headers = {
-        "X-API-Key": config["TRAVEL_TIME_API_KEY"],
-        "X-Application-Id": config["TRAVEL_TIME_APPLICATION_ID"],
+        "X-API-Key": config.get(
+            "TRAVEL_TIME_API_KEY", os.getenv("TRAVEL_TIME_API_KEY")
+        ),
+        "X-Application-Id": config.get(
+            "TRAVEL_TIME_APPLICATION_ID", os.getenv("TRAVEL_TIME_APPLICATION_ID")
+        ),
         "Content-Type": "application/json",
     }
 
@@ -102,7 +107,7 @@ def getPlaces(polygon, center, radius):
 
     URL = "https://places.googleapis.com/v1/places:searchNearby"
     headers = {
-        "X-Goog-Api-Key": config["GOOGLE_API_KEY"],
+        "X-Goog-Api-Key": config.get("GOOGLE_API_KEY", os.getenv("GOOGLE_API_KEY")),
         "Content-Type": "application/json",
         "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location",
     }
@@ -162,7 +167,7 @@ def getGeocodes(addresses: list[str]):
     if len(addresses) == 0:
         raise ValueError("Addresses array can't be empty")
 
-    URL = f"https://api.mapbox.com/search/geocode/v6/batch?access_token={config['MAPBOX_ACCESS_TOKEN']}"
+    URL = f"https://api.mapbox.com/search/geocode/v6/batch?access_token={config.get('MAPBOX_ACCESS_TOKEN', os.getenv('MAPBOX_ACCESS_TOKEN'))}"
     headers = {"Content-Type": "application/json"}
     body = []
 
