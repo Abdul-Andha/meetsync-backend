@@ -96,6 +96,8 @@ class FetchHangoutsRequest(BaseModel):
 class CancelHangoutRequest(BaseModel):
     hangout_id: int
 
+class VoteRequest(BaseModel):
+    recommendation_id: int
 
 @app.get("/")
 async def root():
@@ -430,3 +432,10 @@ async def process_get_hangout_participants(hangout_id: str) -> dict:
     except Exception as e:
         return {"status": 500, "message": str(e)}
 
+
+@app.post("/vote-recommendation")
+async def vote_recommendation(request: VoteRequest) -> dict:
+    try:
+        return da.vote_for_recommendation(request.recommendation_id)
+    except Exception as e:
+        return {"status": 500, "message": str(e)}

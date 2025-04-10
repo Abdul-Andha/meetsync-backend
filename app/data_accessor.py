@@ -1031,3 +1031,29 @@ def cancel_hangout(hangout_id: int):
         return {"status": 200, "message": "Succesfully deleted the hangout."}
     except UnexpectedError as e:
         raise e
+
+def vote_for_recommendation(rec_id: int) -> dict:
+    """
+    Increments the vote count for a place recommendation.
+    Calls `increment_recommendation_vote` SQL function.
+    """
+    supabase: Client = get_supabase_client()
+
+    try:
+        recommendation = (
+            supabase.table("place_recommendations")
+            .select("id")
+            .eq("id", rec_id)
+            .maybe_single()
+            .execute()
+        )
+
+        if not recommendation.data:
+            return {"status": 404, "message": "Recommendation not found."}
+
+        supabase.rpc("increment_recommendation_vote", {"rec_id": rec_id}).execute()
+
+        return {"status": 200, "message": "Vote recorded."}
+
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
