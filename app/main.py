@@ -96,8 +96,10 @@ class FetchHangoutsRequest(BaseModel):
 class CancelHangoutRequest(BaseModel):
     hangout_id: int
 
-class VoteRequest(BaseModel):
+class RankedVoteRequest(BaseModel):
+    user_id: str
     recommendation_id: int
+    rank: int
 
 @app.get("/")
 async def root():
@@ -433,9 +435,9 @@ async def process_get_hangout_participants(hangout_id: str) -> dict:
         return {"status": 500, "message": str(e)}
 
 
-@app.post("/vote-recommendation")
-async def vote_recommendation(request: VoteRequest) -> dict:
+@app.post("/submit-ranked-vote")
+async def submit_ranked_vote(request: RankedVoteRequest) -> dict:
     try:
-        return da.vote_for_recommendation(request.recommendation_id)
+        return da.submit_ranked_vote(request.user_id, request.recommendation_id, request.rank)
     except Exception as e:
         return {"status": 500, "message": str(e)}

@@ -1032,28 +1032,42 @@ def cancel_hangout(hangout_id: int):
     except UnexpectedError as e:
         raise e
 
-def vote_for_recommendation(rec_id: int) -> dict:
+def submit_ranked_vote(user_id: str, recommendation_id: int, rank: int) -> dict:
     """
-    Increments the vote count for a place recommendation.
-    Calls `increment_recommendation_vote` SQL function.
+    Submits or updates a user's ranked vote for a recommendation.
     """
     supabase: Client = get_supabase_client()
 
     try:
-        recommendation = (
-            supabase.table("place_recommendations")
-            .select("id")
-            .eq("id", rec_id)
+        user_exists = (
+            supabase.table("users")
+            .select("auth_id")
+            .eq("auth_id", user_id)
             .maybe_single()
             .execute()
         )
 
-        if not recommendation.data:
+        if not user_exists.data:
+            return {"status": 404, "message": "User not found."}
+
+        rec_exists = (
+            supabase.table("place_recommendations")
+            .select("id")
+            .eq("id", recommendation_id)
+            .maybe_single()
+            .execute()
+        )
+
+        if not rec_exists.data:
             return {"status": 404, "message": "Recommendation not found."}
 
-        supabase.rpc("increment_recommendation_vote", {"rec_id": rec_id}).execute()
+        supabase.rpc("submit_ranked_vote", {
+            "rec_id": recommendation_id,
+            "p_user_id": user_id,
+            "vote_rank": rank,
+        }).execute()
 
-        return {"status": 200, "message": "Vote recorded."}
-
+        return {"status": 200, "message": "Vote submitted."}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
