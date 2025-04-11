@@ -96,6 +96,9 @@ class FetchHangoutsRequest(BaseModel):
 class CancelHangoutRequest(BaseModel):
     hangout_id: int
 
+class BatchVoteRequest(BaseModel):
+    user_id: str
+    votes: list[dict]  
 
 @app.get("/")
 async def root():
@@ -430,3 +433,10 @@ async def process_get_hangout_participants(hangout_id: str) -> dict:
     except Exception as e:
         return {"status": 500, "message": str(e)}
 
+
+@app.post("/submit-batch-votes")
+async def submit_batch_votes(request: BatchVoteRequest):
+    try:
+        return da.submit_batch_votes(request.user_id, request.votes)
+    except Exception as e:
+        return {"status": 500, "message": str(e)}

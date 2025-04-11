@@ -1031,3 +1031,44 @@ def cancel_hangout(hangout_id: int):
         return {"status": 200, "message": "Succesfully deleted the hangout."}
     except UnexpectedError as e:
         raise e
+
+def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
+    """
+    Efficiently submits multiple ranked votes via upsert.
+    """
+    supabase: Client = get_supabase_client()
+
+    try:
+        if not user_id or not votes:
+            return {"status": 400, "message": "Missing user or votes."}
+
+        user_check = (
+            supabase.table("users")
+            .select("auth_id")
+            .eq("auth_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        if not user_check.data:
+            return {"status": 404, "message": "User not found."}
+
+        formatted_votes = [
+            {
+                "user_id": user_id,
+                "recommendation_id": vote["recommendation_id"],
+                "rank": vote["rank"]
+            }
+            for vote in votes
+        ]
+
+        supabase.table("recommendation_votes")\
+            .upsert(formatted_votes, on_conflict="user_id, recommendation_id")\
+            .execute()
+
+
+        return {"status": 200, "message": "Votes submitted successfully"}
+
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
