@@ -17,6 +17,8 @@ class InviteeStatus(str, Enum):
 
 
 class FlowStatus(str, Enum):
+    PENDING_TIME_INPUT = "pending-time-input"
+    SUBMITTED_TIME_INPUT = "submitted-time-input"
     PENDING_TIME_VOTE = "pending-time-vote"
     SUBMITTED_TIME_VOTE = "submitted-time-vote"
     PENDING_LOCATION_VOTE = "pending-location-vote"

@@ -445,6 +445,7 @@ def invite_users(
             "hangout_id": hangout_id,
             "user_id": creator_id,
             "status": InviteeStatus.ACCEPTED,
+            "flowStatus": FlowStatus.PENDING_TIME_INPUT,
         }
     )
 
@@ -649,6 +650,7 @@ def create_poll(hangout_id: str, options: list[str]):
                     "message": "Succesfully created poll but unable to retrieve hangout information and send notifications.",
                 }
             hangout_info = hangout_response["hangout"]
+
             notifResponse = send_notification_bulk(
                 hangout_info["creator_id"],
                 hangout_info["invitee_ids"],
@@ -661,6 +663,20 @@ def create_poll(hangout_id: str, options: list[str]):
                     "status": 200,
                     "message": "Succesfully created poll but unable to send notifications to all invitees.",
                 }
+
+            status_response = (
+                supabase.table("hangout_participants")
+                .update({"flowStatus": FlowStatus.SUBMITTED_TIME_INPUT})
+                .eq("user_id", hangout_info["creator_id"])
+                .eq("hangout_id", hangout_id)
+                .execute()
+            )
+            if not status_response.data:
+                return {
+                    "status": 500,
+                    "message": "Succesfully created poll and sent notifications but unable to update your status.",
+                }
+
             return {
                 "status": 200,
                 "message": "Succesfully created poll and added your options.",
@@ -851,7 +867,8 @@ def set_scheduled_time(
 
     updated_participants_response = (
         supabase.table("hangout_participants")
-        .update({"status": FlowStatus.PENDING_CONFIRM_TIME})
+        .update({"flowStatus": FlowStatus.PENDING_CONFIRM_TIME})
+        .neq("user_id", creator_id)
         .eq("hangout_id", hangout_id)
         .execute()
     )
@@ -1091,6 +1108,7 @@ def cancel_hangout(hangout_id: int):
     except UnexpectedError as e:
         raise e
 
+
 def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
     """
     Efficiently submits multiple ranked votes via upsert.
@@ -1115,19 +1133,16 @@ def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
             {
                 "user_id": user_id,
                 "recommendation_id": vote["recommendation_id"],
-                "rank": vote["rank"]
+                "rank": vote["rank"],
             }
             for vote in votes
         ]
 
-        supabase.table("recommendation_votes")\
-            .upsert(formatted_votes, on_conflict="user_id, recommendation_id")\
-            .execute()
-
+        supabase.table("recommendation_votes").upsert(
+            formatted_votes, on_conflict="user_id, recommendation_id"
+        ).execute()
 
         return {"status": 200, "message": "Votes submitted successfully"}
 
     except Exception as e:
         return {"status": 500, "message": str(e)}
-
-
