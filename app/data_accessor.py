@@ -11,7 +11,13 @@ from app.custom_errors import (
     InvalidNotificationMessage,
     InvalidNotificationId,
 )
-from app.custom_types import FriendStatus, HangoutStatus, InviteeStatus, NotificationType
+from app.custom_types import (
+    FriendStatus,
+    HangoutStatus,
+    InviteeStatus,
+    FlowStatus,
+    NotificationType,
+)
 from app.supabase_client import get_supabase_client
 from app.utils import send_notification_bulk
 
@@ -471,11 +477,14 @@ def respond_to_invite(hangout_id: str, user_id: str, status: InviteeStatus) -> d
         raise InvalidHangout("Hangout ID can not null")
 
     supabase: Client = get_supabase_client()
+    flowStaus = None
+    if status == InviteeStatus.ACCEPTED:
+        flowStatus = FlowStatus.PENDING_TIME_VOTE
 
     try:
         response = (
             supabase.table("hangout_participants")
-            .update({"status": status})
+            .update({"status": status, "flowStatus": flowStatus})
             .eq("hangout_id", hangout_id)
             .eq("user_id", user_id)
             .execute()
@@ -609,8 +618,13 @@ def create_poll(hangout_id: str, options: list[str]):
     try:
         data = []
         for option in unique_options:
-            day, start_time, end_time = option.split(',')
-            insertData = {"hangout_id": hangout_id, "selected_day": day, "start_time": start_time, "end_time": end_time}
+            day, start_time, end_time = option.split(",")
+            insertData = {
+                "hangout_id": hangout_id,
+                "selected_day": day,
+                "start_time": start_time,
+                "end_time": end_time,
+            }
             data.append(insertData)
 
         check_response = (
@@ -629,12 +643,12 @@ def create_poll(hangout_id: str, options: list[str]):
 
         if response.data:
             hangout_response = get_hangout(hangout_id)
-            if hangout_response['status'] != 200:
+            if hangout_response["status"] != 200:
                 return {
                     "status": 200,
                     "message": "Succesfully created poll but unable to retrieve hangout information and send notifications.",
-                } 
-            hangout_info = hangout_response['hangout']
+                }
+            hangout_info = hangout_response["hangout"]
             notifResponse = send_notification_bulk(
                 hangout_info["creator_id"],
                 hangout_info["invitee_ids"],
@@ -654,14 +668,15 @@ def create_poll(hangout_id: str, options: list[str]):
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
+
 def get_poll(hangout_id: str):
-    '''
+    """
     Gets all the poll options for a hangout
 
-    1. If hangout_id is falsey we raise a value error 
+    1. If hangout_id is falsey we raise a value error
     2. Query meetup_options to get the options for a hangout
     3. If all is good, we return a 200 with the options
-    '''
+    """
 
     if hangout_id is None or hangout_id == "":
         raise InvalidHangout("Hangout ID can not null")
@@ -675,13 +690,22 @@ def get_poll(hangout_id: str):
             .execute()
         )
         if response.data:
-            data = [{'id': option['id'], 'option': option['selected_day'] + ',' + option['start_time'] + ',' + option['end_time']} for option in response.data]
+            data = [
+                {
+                    "id": option["id"],
+                    "option": option["selected_day"]
+                    + ","
+                    + option["start_time"]
+                    + ","
+                    + option["end_time"],
+                }
+                for option in response.data
+            ]
             return {"status": 200, "options": data}
         return {"status": 200, "options": []}
 
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
-
 
 
 def vote(hangout_id: int, option_ids: list[str], user_id: str):
@@ -692,9 +716,11 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
     2. We then get the vote options and make sure the option the user is trying to vote for is an actual selection from the poll
         2a. If is not, we raise an error
         2b. Otherwise we submit the vote
-    3. After we submit the vote we get all the participants in an hangout, and all the votes and check if theyre equal
-        3a. If they are equal that means everyone has voted.
-        3b. We know this is true because `user_id` and `hangout_id` are a composite key in `meetup_votes` table so there will never be duplicate votes from the same user
+    3. After we submit the vote:
+        3a. Update this user's status in hangout_participants table to "submitted-time-vote"
+        3b. We get all the participants in an hangout, and all the votes and check if theyre equal
+            - If they are equal that means everyone has voted.
+            - We know this is true because `user_id` and `hangout_id` are a composite key in `meetup_votes` table so there will never be duplicate votes from the same user
     4. If everyone vote, we call a helper function to get the winner and update the hangouts table. The col we are updating is `scheduled_time`
     """
 
@@ -718,8 +744,11 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
                 "status": 500,
                 "message": "No longer accepting votes for hangout. Poll is concluded.",
             }
-    
-        data = [{"user_id": user_id, "option_id": option_id, "hangout_id": hangout_id} for option_id in option_ids]
+
+        data = [
+            {"user_id": user_id, "option_id": option_id, "hangout_id": hangout_id}
+            for option_id in option_ids
+        ]
 
         vote_options = (
             supabase.table("meetup_options")
@@ -736,19 +765,28 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
                     "message": "Invalid voting option: " + option_id,
                 }
 
-        vote_response = (
-            supabase.table("meetup_votes")
-            .upsert(data) 
-            .execute()
-        )
+        vote_response = supabase.table("meetup_votes").upsert(data).execute()
 
         if vote_response.data:
-          
+            status_response = (
+                supabase.table("hangout_participants")
+                .update({"flowStatus": FlowStatus.SUBMITTED_TIME_VOTE})
+                .eq("user_id", user_id)
+                .eq("hangout_id", hangout_id)
+                .execute()
+            )
+
+            if not status_response.data:
+                return {
+                    "status": 500,
+                    "message": "Successfully added vote but unable to update your status.",
+                }
+
             hangout_response = get_hangout(hangout_id)
-            
-            invitees = hangout_response['hangout']["invitee_ids"]
-            creator_id = hangout_response['hangout']["creator_id"]
-            title = hangout_response['hangout']["title"]
+
+            invitees = hangout_response["hangout"]["invitee_ids"]
+            creator_id = hangout_response["hangout"]["creator_id"]
+            title = hangout_response["hangout"]["title"]
 
             user_votes = (
                 supabase.table("meetup_votes")
@@ -760,13 +798,15 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
             flattend_user_votes = [user["user_id"] for user in user_votes.data]
             unique_users = set(flattend_user_votes)
 
-            if len(unique_users) == len(invitees): # change this clause
-               update_hangout_response = set_scheduled_time(supabase,hangout_id, invitees, creator_id, title)
-               if not update_hangout_response:
-                   return {
-                       "status": 500,
-                       "message": "Successfully added vote. We tried to conclude the vote since you are the final memeber to vote but there was an error while updating the hangout."
-                   }
+            if len(unique_users) == len(invitees):  # change this clause
+                update_hangout_response = set_scheduled_time(
+                    supabase, hangout_id, invitees, creator_id, title
+                )
+                if not update_hangout_response:
+                    return {
+                        "status": 500,
+                        "message": "Successfully added vote. We tried to conclude the vote since you are the final memeber to vote but there was an error while updating the hangout.",
+                    }
             return {
                 "status": 200,
                 "message": "Succesfully added your vote",
@@ -776,9 +816,11 @@ def vote(hangout_id: int, option_ids: list[str], user_id: str):
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
 
-def set_scheduled_time(supabase: Client, hangout_id: int, invitees: list[str], creator_id: str, title:str):
+def set_scheduled_time(
+    supabase: Client, hangout_id: int, invitees: list[str], creator_id: str, title: str
+):
     """
-    A helper function to set the winning time for a vote
+    A helper function to set the winning time for a vote, send notifs, and update statuses
 
     1. Get the winner view sql query : https://supabase.com/dashboard/project/iseoomsaaenxnrmceksg/sql/04256748
     2. Update hangouts table with the value returned from the query
@@ -795,8 +837,22 @@ def set_scheduled_time(supabase: Client, hangout_id: int, invitees: list[str], c
     winning_end_time = winning_time_repsponse.data[0]["end_time"]
     updated_hangout_response = (
         supabase.table("hangouts")
-        .update({"scheduled_date": winning_date, "scheduled_start_time": winning_start_time,  "scheduled_end_time": winning_end_time, "status": HangoutStatus.CONFIRM_TIME})
+        .update(
+            {
+                "scheduled_date": winning_date,
+                "scheduled_start_time": winning_start_time,
+                "scheduled_end_time": winning_end_time,
+                "status": HangoutStatus.CONFIRM_TIME,
+            }
+        )
         .eq("id", hangout_id)
+        .execute()
+    )
+
+    updated_participants_response = (
+        supabase.table("hangout_participants")
+        .update({"status": FlowStatus.PENDING_CONFIRM_TIME})
+        .eq("hangout_id", hangout_id)
         .execute()
     )
 
@@ -808,7 +864,10 @@ def set_scheduled_time(supabase: Client, hangout_id: int, invitees: list[str], c
         hangout_id,
     )
 
-    return len(updated_hangout_response.data) == 1 # len is 1 if the update was succesful
+    return (
+        len(updated_hangout_response.data) == 1
+    )  # len is 1 if the update was succesful
+
 
 def check_if_vote_is_concluded(supabase: Client, hangout_id: int):
     """
