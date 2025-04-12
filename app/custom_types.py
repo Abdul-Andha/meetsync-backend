@@ -8,6 +8,7 @@ class HangoutStatus(str, Enum):
     CONFIRM_TIME = 'confirm-time'
     CONFIRM_MEETUP = 'confirm-meetup'
     CONFIRM = 'confirmed'
+    DECLINED = 'declined'
 
 
 class InviteeStatus(str, Enum):

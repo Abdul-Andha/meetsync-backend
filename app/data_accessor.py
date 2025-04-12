@@ -1072,3 +1072,79 @@ def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
         return {"status": 500, "message": str(e)}
 
 
+def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transport: str, travel_time: str):
+
+    if hangout_id is None or not hangout_id:
+        raise InvalidHangout("Hangout ID can not null")
+    if user_id is None or not user_id:
+        raise InvalidUser("User ID cannot be null")
+    
+    supabase: Client = get_supabase_client()
+
+    try:
+        errorMsgStr = ''
+        if not address:
+            errorMsgStr += "Address not found "
+        if not transport:
+            errorMsgStr += "Transport not found "
+        if not travel_time:
+            errorMsgStr += "Travel Time not found"
+        if errorMsgStr:
+            return {"status": 400, "message": errorMsgStr}
+        
+        user_check = (
+            supabase.table("users")
+            .select("auth_id")
+            .eq("auth_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+
+        if not user_check.data:
+            return {"status": 404, "message": "User not found."}
+        
+        response = (
+            supabase.table("hangout_participants")
+            .update({"status": HangoutStatus.CONFIRM_TIME, "start_address": address, "transport": transport, "travel_time": travel_time})
+            .eq("hangout_id", hangout_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        if response.data:
+            return {"status": 200, "message": "Successfully confirmed participant and updated meetup time information"}
+        
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+    
+def submit_time_decline(hangout_id: str, user_id: str):
+
+    if hangout_id is None or not hangout_id:
+        raise InvalidHangout("Hangout ID can not null")
+    if user_id is None or not user_id:
+        raise InvalidUser("User ID cannot be null")
+    
+    supabase: Client = get_supabase_client()
+    try:
+        user_check = (
+            supabase.table("users")
+            .select("auth_id")
+            .eq("auth_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+
+        if not user_check.data:
+            return {"status": 404, "message": "User not found."}
+        
+        response = (
+            supabase.table("hangout_participants")
+            .update({"status": HangoutStatus.DECLINED})
+            .eq("hangout_id", hangout_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        
+        if response.data:
+            return {"status": 200, "message": "Successfully declined participant and updated status"}
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")

@@ -100,6 +100,13 @@ class BatchVoteRequest(BaseModel):
     user_id: str
     votes: list[dict]  
 
+class TimeConfirmation(BaseModel):
+    user_id: str
+    hangout_id: str
+    transport: str
+    travel_time: str
+    address: str
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -438,5 +445,27 @@ async def process_get_hangout_participants(hangout_id: str) -> dict:
 async def submit_batch_votes(request: BatchVoteRequest):
     try:
         return da.submit_batch_votes(request.user_id, request.votes)
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+    
+@app.post('/meetup-time-confirm')
+async def submit_meetup_time_confirmation(request: TimeConfirmation) -> dict:
+    try:
+        return da.submit_time_confirmation(request.hangout_id, request.user_id, request.address, request.transport, request.travel_time)
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+    
+@app.post('/meetup-time-decline')
+async def submit_meetup_time_decline(request: HangoutResponseRequest) -> dict:
+    try:
+        return da.submit_time_decline(request.hangout_id, request.user_id)
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
