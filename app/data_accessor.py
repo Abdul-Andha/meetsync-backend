@@ -1151,6 +1151,18 @@ def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
 
 
 def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transport: str, travel_time: str):
+    '''
+    Confirm a user for submitting meetup time.
+
+    1. check hangout_id and user_id are not null
+    2. Check if other necessary details are not null
+    3. check if user is a valid user
+    4. update user information based on request body (in hangout_participants)
+    5. check if all hangout_participants part of hangout_id confirmed their meetup time
+    6. if all confirmed:
+       - update hangout status to "determining-location"
+       - start algorithm
+    '''
 
     if hangout_id is None or not hangout_id:
         raise InvalidHangout("Hangout ID can not null")
@@ -1204,6 +1216,16 @@ def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transp
         raise UnexpectedError(f"Unexpected error: {str(e)}")
     
 def start_algo(hangout_id: str):
+    '''
+    helper function to start algorithm for finding recommendations, updating status, and sending notifications to all users
+
+    1. start findRecommendations algorithm
+    2. Retrieve information
+       - creator_id and title from get_hangout
+       - all hangout_participants
+    3. update status for all hangout participants to 'confirm-location'
+    4. send notification to all hangout_participants
+    '''
     findRecommendations(hangout_id)
 
     supabase: Client = get_supabase_client()
@@ -1231,32 +1253,52 @@ def start_algo(hangout_id: str):
     notifResponse = send_notification_bulk(
         creator_id,
         [participant["user_id"] for participant in hangout_participants.data],
-        f"Algorithm started, pick your location soon for {title}",
+        f"Pick your location soon for {title}",
         NotificationType.SELECT_PLACES,
         hangout_id,
     )
 
-def check_all_submitted(hangout_id: str, flowStatus: str):
+def check_all_submitted(hangout_id: str, flowStatus: str) -> bool:
+    '''
+    helper function to check if all participants have a particular status 
+    *typically used for checking if all users confirmed something like meetup time
+
+    1. Retrieve data
+       - get all hangout participants
+       - get all hangout participants with flowStatus (any arbitrary status)
+    2. Compare length and return boolean value
+    '''
     supabase: Client = get_supabase_client()
-    hangout_participants = (      
-        supabase.table("hangout_participants")
-        .select()
-        .eq("hangout_id", hangout_id)
-        .eq("status", "accepted")
-        .execute()
-    )
-    participants_submitted = (
-        supabase.table("hangout_participants")
-        .select()
-        .eq("hangout_id", hangout_id)
-        .eq("flowStatus", flowStatus)
-        .execute()
-    )
-    if hangout_participants.data and participants_submitted.data:
-        return len(hangout_participants.data) == len(participants_submitted.data)
-    return False
+    try:
+        hangout_participants = (      
+            supabase.table("hangout_participants")
+            .select()
+            .eq("hangout_id", hangout_id)
+            .eq("status", "accepted")
+            .execute()
+        )
+        participants_submitted = (
+            supabase.table("hangout_participants")
+            .select()
+            .eq("hangout_id", hangout_id)
+            .eq("flowStatus", flowStatus)
+            .execute()
+        )
+        if hangout_participants.data and participants_submitted.data:
+            return len(hangout_participants.data) == len(participants_submitted.data)
+        return False
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
 
 def submit_time_decline(hangout_id: str, user_id: str):
+    '''
+    Decline user for submitting meetup time
+    (aka remove user from hangout)
+
+    1. check hangout_id and user_id are not null
+    2. check if user is a valid user
+    3. delete user from hangout
+    '''
 
     if hangout_id is None or not hangout_id:
         raise InvalidHangout("Hangout ID can not null")
