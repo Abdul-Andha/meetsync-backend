@@ -1181,7 +1181,7 @@ def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transp
         
         response = (
             supabase.table("hangout_participants")
-            .update({"status": HangoutStatus.CONFIRM_TIME, "start_address": address, "transport": transport, "travel_time": travel_time})
+            .update({"flowStatus": FlowStatus.SUBMITTED_CONFIRM_TIME, "start_address": address, "transport": transport, "travel_time": travel_time})
             .eq("hangout_id", hangout_id)
             .eq("user_id", user_id)
             .execute()
@@ -1214,7 +1214,7 @@ def submit_time_decline(hangout_id: str, user_id: str):
         
         response = (
             supabase.table("hangout_participants")
-            .update({"status": HangoutStatus.DECLINED})
+            .delete()
             .eq("hangout_id", hangout_id)
             .eq("user_id", user_id)
             .execute()
