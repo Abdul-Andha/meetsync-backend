@@ -1153,9 +1153,11 @@ def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
         return {"status": 500, "message": str(e)}
 
 
-def update_flow_status(user_id, new_status: str):
+def update_flow_status(user_id, new_status: str, hangout_id):
     if user_id is None:
         raise InvalidUser("User ID can not be null")
+    if hangout_id is None:
+        raise InvalidHangout("Hangout ID can not be null")
     if new_status is None:
         raise ValueError("Status can not be empty.")
 
@@ -1175,6 +1177,7 @@ def update_flow_status(user_id, new_status: str):
             supabase.table("hangout_participants")
             .update(data)
             .eq("user_id", user_id)
+            .eq("hangout_id", hangout_id)
             .execute()
         )
         if len(response.data) == 0:
