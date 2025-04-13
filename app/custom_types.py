@@ -39,6 +39,6 @@ class NotificationType(str, Enum):
     FRIEND_REQUEST = "friend-request"
     GENERAL = "general"
     SELECT_AVAILABILITY = "select-availability"
-    SELECT_PLACRES = "select-places"
+    SELECT_PLACES = "select-places"
     CONFIRM_MEETUP = "confirm-meetup"
     CONFIRM_TIME = "confirm-time"
