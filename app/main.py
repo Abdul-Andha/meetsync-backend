@@ -109,7 +109,7 @@ class TimeConfirmation(BaseModel):
     user_id: str
     hangout_id: str
     transport: str
-    travel_time: str
+    travel_time: int
     address: str
 
 @app.get("/")
