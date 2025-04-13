@@ -459,7 +459,9 @@ async def submit_batch_votes(request: BatchVoteRequest):
 @app.post("/update_flow_status")
 async def process_update_flow_status(request: UpdateFlowStatusRequest):
     try:
-        response = da.update_flow_status(request.user_id, request.new_status, request.hangout_id)
+        response = da.update_flow_status(
+            request.user_id, request.new_status, request.hangout_id
+        )
         return response
     except InvalidUser as e:
         return {"status": 400, "message": str(e)}

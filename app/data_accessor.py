@@ -1161,18 +1161,31 @@ def update_flow_status(user_id, new_status: str, hangout_id):
     if new_status is None:
         raise ValueError("Status can not be empty.")
 
-    data = {
-        "user_id": user_id,
-        "flowStatus": (
-            FlowStatus.ACCEPTED_FINAL_CONFIRMATION
-            if new_status == "accepted"
-            else FlowStatus.DECLINED_FINAL_CONFIRMATION
-        ),
-    }
-
     supabase: Client = get_supabase_client()
 
     try:
+
+        if new_status == "declined":
+            # delete row and return
+            delete_response = (
+                supabase.table("hangout_participants")
+                .delete()
+                .eq("user_id", user_id)
+                .eq("hangout_id", hangout_id)
+                .execute()
+            )
+            if len(delete_response.data) == 0:
+                return {"status": 500, "message": "Error while updating flow status."}
+
+            return {
+                "status": 200,
+                "message": "Successfully declined final confirmation.",
+            }
+        else:
+            data = {
+                "user_id": user_id,
+                "flowStatus": (FlowStatus.ACCEPTED_FINAL_CONFIRMATION),
+            }
         response = (
             supabase.table("hangout_participants")
             .update(data)
@@ -1182,6 +1195,7 @@ def update_flow_status(user_id, new_status: str, hangout_id):
         )
         if len(response.data) == 0:
             return {"status": 500, "message": "Error while updating flow status."}
-        return {"status": 200, "message": "Successfully updated flow status."}
+
+        return {"status": 200, "message": "Successfully accepted final confirmation."}
     except Exception as e:
         return {"status": 500, "message": str(e)}
