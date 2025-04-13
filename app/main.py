@@ -71,12 +71,15 @@ class HangoutResponseRequest(BaseModel):
     hangout_id: str
     user_id: str
 
+
 class GetHangoutsRequest(BaseModel):
     user_id: str
+
 
 class CreatePollRequest(BaseModel):
     hangout_id: int
     options: list[str]
+
 
 class VoteRequest(BaseModel):
     hangout_id: int
@@ -96,9 +99,11 @@ class FetchHangoutsRequest(BaseModel):
 class CancelHangoutRequest(BaseModel):
     hangout_id: int
 
+
 class BatchVoteRequest(BaseModel):
     user_id: str
-    votes: list[dict]  
+    votes: list[dict]
+
 
 class TimeConfirmation(BaseModel):
     user_id: str
@@ -250,19 +255,20 @@ async def get_hangouts_route(request: GetHangoutsRequest) -> dict:
         return {"status": 500, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
-    
+
+
 @app.get("/get-hangout-info")
 async def get_hangout_info_route(hangout_id: str) -> dict:
 
     try:
         response = da.get_hangout(hangout_id)
-        if response['hangout']:
+        if response["hangout"]:
             data = {
-                'status': response['status'],
-                'hangout_info': {
-                    'creator_id': response['hangout']['creator_id'],
-                    'title': response['hangout']['title']
-                }
+                "status": response["status"],
+                "hangout_info": {
+                    "creator_id": response["hangout"]["creator_id"],
+                    "title": response["hangout"]["title"],
+                },
             }
             return data
         return response
@@ -353,7 +359,8 @@ async def process_create_poll(request: CreatePollRequest) -> dict:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
-    
+
+
 @app.get("/get-poll")
 async def access_poll_options(hangout_id: str) -> dict:
 
@@ -364,6 +371,7 @@ async def access_poll_options(hangout_id: str) -> dict:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
 
 @app.post("/vote")
 async def process_vote(request: VoteRequest) -> dict:
