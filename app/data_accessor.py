@@ -1074,6 +1074,11 @@ def fetch_hangouts(uuid: str, name: str = "") -> dict:
             },
         ).execute()
 
+        for hangout in response.data:
+            hangout["participants"] = get_hangout_participants(hangout["id"])[
+                "participants"
+            ]
+
         return {"status": 200, "hangouts": response.data}
 
     except UnexpectedError as e:
@@ -1144,5 +1149,36 @@ def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
 
         return {"status": 200, "message": "Votes submitted successfully"}
 
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+def update_flow_status(user_id, new_status: str):
+    if user_id is None:
+        raise InvalidUser("User ID can not be null")
+    if new_status is None:
+        raise ValueError("Status can not be empty.")
+
+    data = {
+        "user_id": user_id,
+        "flowStatus": (
+            FlowStatus.ACCEPTED_FINAL_CONFIRMATION
+            if new_status == "accepted"
+            else FlowStatus.DECLINED_FINAL_CONFIRMATION
+        ),
+    }
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = (
+            supabase.table("hangout_participants")
+            .update(data)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        if len(response.data) == 0:
+            return {"status": 500, "message": "Error while updating flow status."}
+        return {"status": 200, "message": "Successfully updated flow status."}
     except Exception as e:
         return {"status": 500, "message": str(e)}

@@ -26,7 +26,8 @@ class FlowStatus(str, Enum):
     PENDING_CONFIRM_TIME = "pending-confirm-time"
     SUBMITTED_CONFIRM_TIME = "submitted-confirm-time"
     PENDING_CONFIRM_LOCATION = "pending-confirm-location"
-    SUBMITTED_CONFIRM_LOCATION = "submitted-confirm-location"
+    DECLINED_FINAL_CONFIRMATION = "declined-final-confirmation"
+    ACCEPTED_FINAL_CONFIRMATION = "accepted-final-confirmation"
 
 
 class FriendStatus(str, Enum):

@@ -105,6 +105,11 @@ class BatchVoteRequest(BaseModel):
     votes: list[dict]
 
 
+class UpdateFlowStatusRequest(BaseModel):
+    user_id: str
+    new_status: str
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -446,5 +451,18 @@ async def process_get_hangout_participants(hangout_id: str) -> dict:
 async def submit_batch_votes(request: BatchVoteRequest):
     try:
         return da.submit_batch_votes(request.user_id, request.votes)
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
+
+@app.post("/update_flow_status")
+async def process_update_flow_status(request: UpdateFlowStatusRequest):
+    try:
+        response = da.update_flow_status(request.user_id, request.new_status)
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
+        return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
