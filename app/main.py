@@ -479,7 +479,7 @@ async def submit_meetup_time_decline(request: HangoutResponseRequest) -> dict:
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
     except InvalidUser as e:
-
+        return {"status": 400, "message": str(e)}
 
 @app.post("/update_flow_status")
 async def process_update_flow_status(request: UpdateFlowStatusRequest):
