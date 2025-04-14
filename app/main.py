@@ -112,6 +112,11 @@ class TimeConfirmation(BaseModel):
     travel_time: int
     address: str
 
+class UpdateFlowStatusRequest(BaseModel):
+    user_id: str
+    hangout_id: int
+    new_status: str
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -474,6 +479,18 @@ async def submit_meetup_time_decline(request: HangoutResponseRequest) -> dict:
     except InvalidHangout as e:
         return {"status": 400, "message": str(e)}
     except InvalidUser as e:
+
+
+@app.post("/update_flow_status")
+async def process_update_flow_status(request: UpdateFlowStatusRequest):
+    try:
+        response = da.update_flow_status(
+            request.user_id, request.new_status, request.hangout_id
+        )
+        return response
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except ValueError as e:
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}

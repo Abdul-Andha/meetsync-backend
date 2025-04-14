@@ -1076,6 +1076,11 @@ def fetch_hangouts(uuid: str, name: str = "") -> dict:
             },
         ).execute()
 
+        for hangout in response.data:
+            hangout["participants"] = get_hangout_participants(hangout["id"])[
+                "participants"
+            ]
+
         return {"status": 200, "hangouts": response.data}
 
     except UnexpectedError as e:
@@ -1148,7 +1153,6 @@ def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
 
     except Exception as e:
         return {"status": 500, "message": str(e)}
-
 
 def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transport: str, travel_time: str):
     '''
@@ -1330,3 +1334,50 @@ def submit_time_decline(hangout_id: str, user_id: str):
             return {"status": 200, "message": "Successfully declined participant and updated status"}
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
+        
+def update_flow_status(user_id, new_status: str, hangout_id):
+    if user_id is None:
+        raise InvalidUser("User ID can not be null")
+    if hangout_id is None:
+        raise InvalidHangout("Hangout ID can not be null")
+    if new_status is None:
+        raise ValueError("Status can not be empty.")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+
+        if new_status == "declined":
+            # delete row and return
+            delete_response = (
+                supabase.table("hangout_participants")
+                .delete()
+                .eq("user_id", user_id)
+                .eq("hangout_id", hangout_id)
+                .execute()
+            )
+            if len(delete_response.data) == 0:
+                return {"status": 500, "message": "Error while updating flow status."}
+
+            return {
+                "status": 200,
+                "message": "Successfully declined final confirmation.",
+            }
+        else:
+            data = {
+                "user_id": user_id,
+                "flowStatus": (FlowStatus.ACCEPTED_FINAL_CONFIRMATION),
+            }
+        response = (
+            supabase.table("hangout_participants")
+            .update(data)
+            .eq("user_id", user_id)
+            .eq("hangout_id", hangout_id)
+            .execute()
+        )
+        if len(response.data) == 0:
+            return {"status": 500, "message": "Error while updating flow status."}
+
+        return {"status": 200, "message": "Successfully accepted final confirmation."}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
