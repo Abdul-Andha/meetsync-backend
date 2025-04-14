@@ -105,7 +105,7 @@ class BatchVoteRequest(BaseModel):
     votes: list[dict]
 
 
-class TimeConfirmation(BaseModel):
+class TimeConfirmationRequest(BaseModel):
     user_id: str
     hangout_id: str
     transport: str
