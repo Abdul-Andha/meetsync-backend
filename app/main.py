@@ -457,7 +457,7 @@ async def submit_batch_votes(request: BatchVoteRequest):
         return {"status": 500, "message": str(e)}
     
 @app.post('/meetup-time-confirm')
-async def submit_meetup_time_confirmation(request: TimeConfirmation) -> dict:
+async def submit_meetup_time_confirmation(request: TimeConfirmationRequest) -> dict:
     try:
         return da.submit_time_confirmation(request.hangout_id, request.user_id, request.address, request.transport, request.travel_time)
     except InvalidHangout as e:
