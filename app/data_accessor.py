@@ -3,6 +3,8 @@ from datetime import datetime
 from dotenv import dotenv_values
 from supabase import Client
 
+from app.algo import findRecommendations
+
 from app.custom_errors import (
     InvalidFriendship,
     InvalidHangout,
@@ -858,6 +860,7 @@ def set_scheduled_time(
                 "scheduled_date": winning_date,
                 "scheduled_start_time": winning_start_time,
                 "scheduled_end_time": winning_end_time,
+                "scheduled_time": str(winning_date) + ' ' + str(winning_start_time),
                 "status": HangoutStatus.CONFIRM_TIME,
             }
         )
@@ -884,7 +887,6 @@ def set_scheduled_time(
     return (
         len(updated_hangout_response.data) == 1
     )  # len is 1 if the update was succesful
-
 
 def check_if_vote_is_concluded(supabase: Client, hangout_id: int):
     """
@@ -1152,7 +1154,187 @@ def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
     except Exception as e:
         return {"status": 500, "message": str(e)}
 
+def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transport: str, travel_time: str):
+    '''
+    Confirm a user for submitting meetup time.
 
+    1. check hangout_id and user_id are not null
+    2. Check if other necessary details are not null
+    3. check if user is a valid user
+    4. update user information based on request body (in hangout_participants)
+    5. check if all hangout_participants part of hangout_id confirmed their meetup time
+    6. if all confirmed:
+       - update hangout status to "determining-location"
+       - start algorithm
+    '''
+
+    if hangout_id is None or not hangout_id:
+        raise InvalidHangout("Hangout ID can not null")
+    if user_id is None or not user_id:
+        raise InvalidUser("User ID cannot be null")
+    
+    errorMsgStr = ''
+    if not address:
+        errorMsgStr += "Address not found "
+    if not transport:
+        errorMsgStr += "Transport not found "
+    if not travel_time:
+        errorMsgStr += "Travel Time not found"
+    if errorMsgStr:
+        return {"status": 400, "message": errorMsgStr}
+    
+    supabase: Client = get_supabase_client()
+
+    try:
+        user_check = (
+            supabase.table("users")
+            .select("auth_id")
+            .eq("auth_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+
+        if not user_check.data:
+            return {"status": 404, "message": "User not found."}
+        
+        response = (
+            supabase.table("hangout_participants")
+            .update({"flowStatus": FlowStatus.SUBMITTED_CONFIRM_TIME, "start_address": address, "transport": transport, "travel_time": travel_time})
+            .eq("hangout_id", hangout_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        if response.data:
+            if check_all_submitted(hangout_id, "submitted-confirm-time"):
+                change_hangout_status = (
+                    supabase.table("hangouts")
+                    .update({"status": HangoutStatus.DETERMINING_LOCATION})
+                    .eq("id", hangout_id)
+                    .execute()
+                )
+                start_algo(hangout_id)
+                return {"status": 200, "message": "Successfully confirmed participant and started algorithm"}
+            return {"status": 200, "message": "Successfully confirmed participant and updated meetup time information"}
+        
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+    
+def start_algo(hangout_id: str):
+    '''
+    helper function to start algorithm for finding recommendations, updating status, and sending notifications to all users
+
+    1. start findRecommendations algorithm
+    2. Retrieve information
+       - creator_id and title from get_hangout
+       - all hangout_participants
+    3. update status for all hangout participants to 'confirm-location'
+    4. send notification to all hangout_participants
+    '''
+    findRecommendations(hangout_id)
+
+    supabase: Client = get_supabase_client()
+
+    hangout_response = get_hangout(hangout_id)
+
+    creator_id = hangout_response["hangout"]["creator_id"]
+    title = hangout_response["hangout"]["title"]
+
+    hangout_participants = (      
+        supabase.table("hangout_participants")
+        .select()
+        .eq("hangout_id", hangout_id)
+        .eq("status", "accepted")
+        .execute()
+    )
+
+    updated_participants_response = (
+        supabase.table("hangout_participants")
+        .update({"flowStatus": FlowStatus.PENDING_CONFIRM_LOCATION})
+        .eq("hangout_id", hangout_id)
+        .execute()
+    )
+
+    notifResponse = send_notification_bulk(
+        creator_id,
+        [participant["user_id"] for participant in hangout_participants.data],
+        f"Pick your location soon for {title}",
+        NotificationType.SELECT_PLACES,
+        hangout_id,
+    )
+
+def check_all_submitted(hangout_id: str, flowStatus: str) -> bool:
+    '''
+    helper function to check if all participants have a particular status 
+    *typically used for checking if all users confirmed something like meetup time
+
+    1. Retrieve data
+       - get all hangout participants
+       - get all hangout participants with flowStatus (any arbitrary status)
+    2. Compare length and return boolean value
+    '''
+    supabase: Client = get_supabase_client()
+    try:
+        hangout_participants = (      
+            supabase.table("hangout_participants")
+            .select()
+            .eq("hangout_id", hangout_id)
+            .eq("status", "accepted")
+            .execute()
+        )
+        participants_submitted = (
+            supabase.table("hangout_participants")
+            .select()
+            .eq("hangout_id", hangout_id)
+            .eq("flowStatus", flowStatus)
+            .execute()
+        )
+        if hangout_participants.data and participants_submitted.data:
+            return len(hangout_participants.data) == len(participants_submitted.data)
+        return False
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+
+def submit_time_decline(hangout_id: str, user_id: str):
+    '''
+    Decline user for submitting meetup time
+    (aka remove user from hangout)
+
+    1. check hangout_id and user_id are not null
+    2. check if user is a valid user
+    3. delete user from hangout
+    '''
+
+    if hangout_id is None or not hangout_id:
+        raise InvalidHangout("Hangout ID can not null")
+    if user_id is None or not user_id:
+        raise InvalidUser("User ID cannot be null")
+    
+    supabase: Client = get_supabase_client()
+    try:
+        user_check = (
+            supabase.table("users")
+            .select("auth_id")
+            .eq("auth_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+
+        if not user_check.data:
+            return {"status": 404, "message": "User not found."}
+        
+        response = (
+            supabase.table("hangout_participants")
+            .delete()
+            .eq("hangout_id", hangout_id)
+            .eq("user_id", user_id)
+            .execute()
+        )
+        
+        if response.data:
+            return {"status": 200, "message": "Successfully declined participant and updated status"}
+    except Exception as e:
+        raise UnexpectedError(f"Unexpected error: {str(e)}")
+        
 def update_flow_status(user_id, new_status: str, hangout_id):
     if user_id is None:
         raise InvalidUser("User ID can not be null")

@@ -105,11 +105,17 @@ class BatchVoteRequest(BaseModel):
     votes: list[dict]
 
 
+class TimeConfirmationRequest(BaseModel):
+    user_id: str
+    hangout_id: str
+    transport: str
+    travel_time: int
+    address: str
+
 class UpdateFlowStatusRequest(BaseModel):
     user_id: str
     hangout_id: int
     new_status: str
-
 
 @app.get("/")
 async def root():
@@ -454,7 +460,26 @@ async def submit_batch_votes(request: BatchVoteRequest):
         return da.submit_batch_votes(request.user_id, request.votes)
     except Exception as e:
         return {"status": 500, "message": str(e)}
-
+    
+@app.post('/meetup-time-confirm')
+async def submit_meetup_time_confirmation(request: TimeConfirmationRequest) -> dict:
+    try:
+        return da.submit_time_confirmation(request.hangout_id, request.user_id, request.address, request.transport, request.travel_time)
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+    
+@app.post('/meetup-time-decline')
+async def submit_meetup_time_decline(request: HangoutResponseRequest) -> dict:
+    try:
+        return da.submit_time_decline(request.hangout_id, request.user_id)
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except InvalidUser as e:
+        return {"status": 400, "message": str(e)}
 
 @app.post("/update_flow_status")
 async def process_update_flow_status(request: UpdateFlowStatusRequest):
