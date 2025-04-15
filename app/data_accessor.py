@@ -860,7 +860,7 @@ def set_scheduled_time(
                 "scheduled_date": winning_date,
                 "scheduled_start_time": winning_start_time,
                 "scheduled_end_time": winning_end_time,
-                "scheduled_time": str(winning_date) + ' ' + str(winning_start_time),
+                "scheduled_time": str(winning_date) + " " + str(winning_start_time),
                 "status": HangoutStatus.CONFIRM_TIME,
             }
         )
@@ -871,7 +871,6 @@ def set_scheduled_time(
     updated_participants_response = (
         supabase.table("hangout_participants")
         .update({"flowStatus": FlowStatus.PENDING_CONFIRM_TIME})
-        .neq("user_id", creator_id)
         .eq("hangout_id", hangout_id)
         .execute()
     )
@@ -887,6 +886,7 @@ def set_scheduled_time(
     return (
         len(updated_hangout_response.data) == 1
     )  # len is 1 if the update was succesful
+
 
 def check_if_vote_is_concluded(supabase: Client, hangout_id: int):
     """
@@ -1154,8 +1154,11 @@ def submit_batch_votes(user_id: str, votes: list[dict]) -> dict:
     except Exception as e:
         return {"status": 500, "message": str(e)}
 
-def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transport: str, travel_time: str):
-    '''
+
+def submit_time_confirmation(
+    hangout_id: str, user_id: str, address: str, transport: str, travel_time: str
+):
+    """
     Confirm a user for submitting meetup time.
 
     1. check hangout_id and user_id are not null
@@ -1166,14 +1169,14 @@ def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transp
     6. if all confirmed:
        - update hangout status to "determining-location"
        - start algorithm
-    '''
+    """
 
     if hangout_id is None or not hangout_id:
         raise InvalidHangout("Hangout ID can not null")
     if user_id is None or not user_id:
         raise InvalidUser("User ID cannot be null")
-    
-    errorMsgStr = ''
+
+    errorMsgStr = ""
     if not address:
         errorMsgStr += "Address not found "
     if not transport:
@@ -1182,7 +1185,7 @@ def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transp
         errorMsgStr += "Travel Time not found"
     if errorMsgStr:
         return {"status": 400, "message": errorMsgStr}
-    
+
     supabase: Client = get_supabase_client()
 
     try:
@@ -1196,10 +1199,17 @@ def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transp
 
         if not user_check.data:
             return {"status": 404, "message": "User not found."}
-        
+
         response = (
             supabase.table("hangout_participants")
-            .update({"flowStatus": FlowStatus.SUBMITTED_CONFIRM_TIME, "start_address": address, "transport": transport, "travel_time": travel_time})
+            .update(
+                {
+                    "flowStatus": FlowStatus.SUBMITTED_CONFIRM_TIME,
+                    "start_address": address,
+                    "transport": transport,
+                    "travel_time": travel_time,
+                }
+            )
             .eq("hangout_id", hangout_id)
             .eq("user_id", user_id)
             .execute()
@@ -1213,14 +1223,21 @@ def submit_time_confirmation(hangout_id: str, user_id: str, address: str, transp
                     .execute()
                 )
                 start_algo(hangout_id)
-                return {"status": 200, "message": "Successfully confirmed participant and started algorithm"}
-            return {"status": 200, "message": "Successfully confirmed participant and updated meetup time information"}
-        
+                return {
+                    "status": 200,
+                    "message": "Successfully confirmed participant and started algorithm",
+                }
+            return {
+                "status": 200,
+                "message": "Successfully confirmed participant and updated meetup time information",
+            }
+
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
-    
+
+
 def start_algo(hangout_id: str):
-    '''
+    """
     helper function to start algorithm for finding recommendations, updating status, and sending notifications to all users
 
     1. start findRecommendations algorithm
@@ -1229,7 +1246,7 @@ def start_algo(hangout_id: str):
        - all hangout_participants
     3. update status for all hangout participants to 'confirm-location'
     4. send notification to all hangout_participants
-    '''
+    """
     findRecommendations(hangout_id)
 
     supabase: Client = get_supabase_client()
@@ -1239,7 +1256,7 @@ def start_algo(hangout_id: str):
     creator_id = hangout_response["hangout"]["creator_id"]
     title = hangout_response["hangout"]["title"]
 
-    hangout_participants = (      
+    hangout_participants = (
         supabase.table("hangout_participants")
         .select()
         .eq("hangout_id", hangout_id)
@@ -1262,19 +1279,20 @@ def start_algo(hangout_id: str):
         hangout_id,
     )
 
+
 def check_all_submitted(hangout_id: str, flowStatus: str) -> bool:
-    '''
-    helper function to check if all participants have a particular status 
+    """
+    helper function to check if all participants have a particular status
     *typically used for checking if all users confirmed something like meetup time
 
     1. Retrieve data
        - get all hangout participants
        - get all hangout participants with flowStatus (any arbitrary status)
     2. Compare length and return boolean value
-    '''
+    """
     supabase: Client = get_supabase_client()
     try:
-        hangout_participants = (      
+        hangout_participants = (
             supabase.table("hangout_participants")
             .select()
             .eq("hangout_id", hangout_id)
@@ -1294,21 +1312,22 @@ def check_all_submitted(hangout_id: str, flowStatus: str) -> bool:
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
+
 def submit_time_decline(hangout_id: str, user_id: str):
-    '''
+    """
     Decline user for submitting meetup time
     (aka remove user from hangout)
 
     1. check hangout_id and user_id are not null
     2. check if user is a valid user
     3. delete user from hangout
-    '''
+    """
 
     if hangout_id is None or not hangout_id:
         raise InvalidHangout("Hangout ID can not null")
     if user_id is None or not user_id:
         raise InvalidUser("User ID cannot be null")
-    
+
     supabase: Client = get_supabase_client()
     try:
         user_check = (
@@ -1321,7 +1340,7 @@ def submit_time_decline(hangout_id: str, user_id: str):
 
         if not user_check.data:
             return {"status": 404, "message": "User not found."}
-        
+
         response = (
             supabase.table("hangout_participants")
             .delete()
@@ -1329,12 +1348,16 @@ def submit_time_decline(hangout_id: str, user_id: str):
             .eq("user_id", user_id)
             .execute()
         )
-        
+
         if response.data:
-            return {"status": 200, "message": "Successfully declined participant and updated status"}
+            return {
+                "status": 200,
+                "message": "Successfully declined participant and updated status",
+            }
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
-        
+
+
 def update_flow_status(user_id, new_status: str, hangout_id):
     if user_id is None:
         raise InvalidUser("User ID can not be null")
