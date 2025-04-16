@@ -1266,7 +1266,7 @@ def start_algo(hangout_id: str):
 
     updated_participants_response = (
         supabase.table("hangout_participants")
-        .update({"flowStatus": FlowStatus.PENDING_CONFIRM_LOCATION})
+        .update({"flowStatus": FlowStatus.PENDING_LOCATION_VOTE})
         .eq("hangout_id", hangout_id)
         .execute()
     )
