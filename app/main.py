@@ -494,3 +494,13 @@ async def process_update_flow_status(request: UpdateFlowStatusRequest):
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
+@app.get("/get_hangout_progress/{hangout_id}")
+async def process_get_hangout_progress(hangout_id: int):
+    try:
+        response = da.get_hangout_progress(hangout_id)
+        return response
+    except InvalidHangout as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}

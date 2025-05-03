@@ -1404,3 +1404,32 @@ def update_flow_status(user_id, new_status: str, hangout_id):
         return {"status": 200, "message": "Successfully accepted final confirmation."}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
+
+def get_hangout_progress(hangout_id: int):
+    if hangout_id is None:
+        raise InvalidHangout("Hangout ID cannot be null.")
+
+    supabase: Client = get_supabase_client()
+
+    try:
+        response = supabase.rpc("get_hangout_progress", {
+            "hangout_id_input": hangout_id
+        }).execute()
+
+        if not response.data:
+            return {
+                "status": 200,
+                "current_stage": None,
+                "stage_count": 0,
+                "total_count": 0
+            }
+
+        return {
+            "status": 200,
+            **response.data[0]  
+        }
+
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
