@@ -1443,13 +1443,13 @@ def get_place_coord(locationName: str):
     try:
         response = (
             supabase.table("place_recommendations")
-            .select("location")
+            .select("location,address")
             .eq("name", locationName)
             .execute()
         )
 
         if not response.data:
-            return {"status": 404, "message": "Location not found"}
+            return {"status": 404, "data": []}
         
         return {
             "status": 200,
