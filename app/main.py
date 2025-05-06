@@ -10,6 +10,7 @@ from app.custom_errors import (
     UnexpectedError,
     InvalidNotificationId,
     InvalidNotificationMessage,
+    InvalidInput,
 )
 from app.custom_types import InviteeStatus
 from app.algo import findRecommendations
@@ -71,6 +72,8 @@ class HangoutResponseRequest(BaseModel):
     hangout_id: str
     user_id: str
 
+class MeetupLocationRequest(BaseModel):
+    name: str
 
 class GetHangoutsRequest(BaseModel):
     user_id: str
@@ -504,3 +507,16 @@ async def process_get_hangout_progress(hangout_id: int):
         return {"status": 400, "message": str(e)}
     except Exception as e:
         return {"status": 500, "message": str(e)}
+
+
+
+@app.post('/get-place-coord')
+async def process_get_place_coordinates(request: MeetupLocationRequest):
+    try:
+        response = da.get_place_coord(request.name)
+        return response
+    except InvalidInput as e:
+        return {"status": 400, "message": str(e)}
+    except Exception as e:
+        return {"status": 500, "message": str(e)}
+
