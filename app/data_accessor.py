@@ -12,6 +12,7 @@ from app.custom_errors import (
     UnexpectedError,
     InvalidNotificationMessage,
     InvalidNotificationId,
+    InvalidInput,
 )
 from app.custom_types import (
     FriendStatus,
@@ -1433,3 +1434,27 @@ def get_hangout_progress(hangout_id: int):
     except Exception as e:
         return {"status": 500, "message": str(e)}
 
+def get_place_coord(locationName: str):
+    if not locationName or locationName == None or locationName == '':
+        return InvalidInput("Location name must not be null or empty")
+    
+    supabase: Client = get_supabase_client()
+    
+    try:
+        response = (
+            supabase.table("place_recommendations")
+            .select("location,address")
+            .eq("name", locationName)
+            .execute()
+        )
+
+        if not response.data:
+            return {"status": 404, "data": []}
+        
+        return {
+            "status": 200,
+            "data": response.data
+        }
+
+    except Exception as e:
+        return {"status": 500, "message": str(e)}

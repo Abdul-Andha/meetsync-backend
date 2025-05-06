@@ -9,6 +9,9 @@ class InvalidHangout(Exception):
 class InvalidFriendship(Exception):
     """Friendship ID can not be null"""
 
+class InvalidInput(Exception):
+    """Input is not valid"""
+
 
 class UnexpectedError(Exception):
     """Use this class for all unexpected exeptions"""
