@@ -415,7 +415,7 @@ def new_hangout(
             invite_users(
                 creator_id, creator_username, response.data[0]["id"], invitee_ids
             )
-            return {"status": 200, "message": "Succesfully created the hangout."}
+            return {"status": 200, "message": "Succesfully created the hangout.", "hangout_id": response.data[0]["id"]}
     except Exception as e:
         raise UnexpectedError(f"Unexpected error: {str(e)}")
 
